@@ -3,6 +3,7 @@ use std::os::raw::{c_char, c_int};
 
 // Define the response structure from Swift
 #[repr(C)]
+#[allow(dead_code)]
 pub struct AppleLLMResponse {
     pub response: *mut c_char,
     pub success: c_int,
@@ -10,6 +11,7 @@ pub struct AppleLLMResponse {
 }
 
 // Link to the Swift functions
+#[allow(dead_code)]
 extern "C" {
     pub fn is_apple_intelligence_available() -> c_int;
     pub fn process_text_with_apple_llm(
@@ -24,6 +26,7 @@ pub fn check_apple_intelligence_availability() -> bool {
     unsafe { is_apple_intelligence_available() == 1 }
 }
 
+#[allow(dead_code)]
 pub fn process_text(prompt: &str, max_tokens: i32) -> Result<String, String> {
     let prompt_cstr = CString::new(prompt).map_err(|e| e.to_string())?;
 

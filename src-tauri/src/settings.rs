@@ -6,9 +6,6 @@ use std::collections::HashMap;
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 
-pub const APPLE_INTELLIGENCE_PROVIDER_ID: &str = "apple_intelligence";
-pub const APPLE_INTELLIGENCE_DEFAULT_MODEL_ID: &str = "Apple Intelligence";
-
 #[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
@@ -397,73 +394,26 @@ fn default_app_language() -> String {
 }
 
 fn default_post_process_provider_id() -> String {
-    "openai".to_string()
+    "custom".to_string()
 }
 
 fn default_post_process_providers() -> Vec<PostProcessProvider> {
-    let mut providers = vec![
+    vec![
         PostProcessProvider {
-            id: "openai".to_string(),
-            label: "OpenAI".to_string(),
-            base_url: "https://api.openai.com/v1".to_string(),
-            allow_base_url_edit: false,
+            id: "custom".to_string(),
+            label: "Custom Local".to_string(),
+            base_url: "http://localhost:11434/v1".to_string(),
+            allow_base_url_edit: true,
             models_endpoint: Some("/models".to_string()),
         },
         PostProcessProvider {
-            id: "openrouter".to_string(),
-            label: "OpenRouter".to_string(),
-            base_url: "https://openrouter.ai/api/v1".to_string(),
-            allow_base_url_edit: false,
-            models_endpoint: Some("/models".to_string()),
-        },
-        PostProcessProvider {
-            id: "anthropic".to_string(),
-            label: "Anthropic".to_string(),
-            base_url: "https://api.anthropic.com/v1".to_string(),
-            allow_base_url_edit: false,
-            models_endpoint: Some("/models".to_string()),
-        },
-        PostProcessProvider {
-            id: "groq".to_string(),
-            label: "Groq".to_string(),
-            base_url: "https://api.groq.com/openai/v1".to_string(),
-            allow_base_url_edit: false,
-            models_endpoint: Some("/models".to_string()),
-        },
-        PostProcessProvider {
-            id: "cerebras".to_string(),
-            label: "Cerebras".to_string(),
-            base_url: "https://api.cerebras.ai/v1".to_string(),
-            allow_base_url_edit: false,
-            models_endpoint: Some("/models".to_string()),
-        },
-    ];
-
-    // Note: We always include Apple Intelligence on macOS ARM64 without checking availability
-    // at startup. The availability check is deferred to when the user actually tries to use it
-    // (in actions.rs). This prevents crashes on macOS 26.x beta where accessing
-    // SystemLanguageModel.default during early app initialization causes SIGABRT.
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    {
-        providers.push(PostProcessProvider {
-            id: APPLE_INTELLIGENCE_PROVIDER_ID.to_string(),
-            label: "Apple Intelligence".to_string(),
-            base_url: "apple-intelligence://local".to_string(),
+            id: "anamedi".to_string(),
+            label: "Anamedi Cloud".to_string(),
+            base_url: "https://app.anamedi.com".to_string(),
             allow_base_url_edit: false,
             models_endpoint: None,
-        });
-    }
-
-    // Custom provider always comes last
-    providers.push(PostProcessProvider {
-        id: "custom".to_string(),
-        label: "Custom".to_string(),
-        base_url: "http://localhost:11434/v1".to_string(),
-        allow_base_url_edit: true,
-        models_endpoint: Some("/models".to_string()),
-    });
-
-    providers
+        },
+    ]
 }
 
 fn default_post_process_api_keys() -> HashMap<String, String> {
@@ -474,35 +424,124 @@ fn default_post_process_api_keys() -> HashMap<String, String> {
     map
 }
 
-fn default_model_for_provider(provider_id: &str) -> String {
-    if provider_id == APPLE_INTELLIGENCE_PROVIDER_ID {
-        return APPLE_INTELLIGENCE_DEFAULT_MODEL_ID.to_string();
-    }
-    String::new()
-}
-
 fn default_post_process_models() -> HashMap<String, String> {
-    let mut map = HashMap::new();
-    for provider in default_post_process_providers() {
-        map.insert(
-            provider.id.clone(),
-            default_model_for_provider(&provider.id),
-        );
-    }
-    map
+    HashMap::new()
 }
 
 fn default_post_process_prompts() -> Vec<LLMPrompt> {
-    vec![LLMPrompt {
-        id: "default_improve_transcriptions".to_string(),
-        name: "Improve Transcriptions".to_string(),
-        prompt: "Clean this transcript:\n1. Fix spelling, capitalization, and punctuation errors\n2. Convert number words to digits (twenty-five → 25, ten percent → 10%, five dollars → $5)\n3. Replace spoken punctuation with symbols (period → ., comma → ,, question mark → ?)\n4. Remove filler words (um, uh, like as filler)\n5. Keep the language in the original version (if it was french, keep it in french for example)\n\nPreserve exact meaning and word order. Do not paraphrase or reorder content.\n\nReturn only the cleaned transcript.\n\nTranscript:\n${output}".to_string(),
-    }]
+    vec![
+        LLMPrompt {
+            id: "default_improve_transcriptions".to_string(),
+            name: "Improve Transcriptions".to_string(),
+            prompt: r#"Clean this transcript:
+1. Fix spelling, capitalization, and punctuation errors
+2. Convert number words to digits (twenty-five → 25, ten percent → 10%, five dollars → $5)
+3. Replace spoken punctuation with symbols (period → ., comma → ,, question mark → ?)
+4. Remove filler words (um, uh, like as filler)
+5. Keep the language in the original version (if it was french, keep it in french for example)
+
+Preserve exact meaning and word order. Do not paraphrase or reorder content.
+
+Return only the cleaned transcript.
+
+Transcript:
+${output}"#
+                .to_string(),
+        },
+        LLMPrompt {
+            id: "summary_bullets".to_string(),
+            name: "Summarize Transcript (Bullets)".to_string(),
+            prompt: r#"You are an assistant that summarizes spoken transcripts.
+Summarize the following transcript as a concise bullet list.
+
+Guidelines:
+- Keep the language of the original transcript.
+- Focus on the most important points, decisions, and action items.
+- Use short, clear bullet points.
+- Do not add information that is not explicitly mentioned.
+
+Transcript:
+${output}"#
+                .to_string(),
+        },
+        LLMPrompt {
+            id: "soap_json_de".to_string(),
+            name: "SOAP (DE)".to_string(),
+            prompt: r#"Das Folgende ist eine wörtliche Abschrift eines ärztlichen Gesprächs in der hausärztlichen Versorgung.
+Verwenden Sie AUSSCHLIESSLICH Informationen aus diesem Transkript und erfinden Sie NICHTS hinzu.
+
+Transkript:
+${output}
+
+Erstellen Sie daraus eine strukturierte ärztliche Dokumentation im SOAP-Format mit den folgenden Abschnitten:
+
+Subjektiv:
+• ...
+
+Objektiv:
+• ...
+
+Untersuchung:
+• ...
+
+Beurteilung:
+• ...
+
+Procedere:
+• ...
+
+WICHTIGE STILREGELN:
+
+1. Fachsprache & Ausdruck
+   – Verwenden Sie medizinische Terminologie, wo immer möglich (z. B. "Dyspnoe" statt "Atemnot", "Hypertonus" statt "Bluthochdruck").
+   – Verwenden Sie typische ärztliche Floskeln wie "es imponiert...", "klinisch unauffällig", "anamnestisch", "im Rahmen der Differenzialdiagnose" etc.
+   – Verwenden Sie Passivkonstruktionen und Nominalstil (z. B. "es erfolgte die Durchführung einer..." statt "wir haben ... gemacht").
+   – Der Text soll den Ton eines überakademisierten, hyperpräzisen Klinikers haben, der jeden Befund dokumentiert.
+
+2. Struktur
+   – Verwenden Sie exakt diese fünf Abschnitte: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere.
+   – Jeder Abschnitt beginnt mit seiner Überschrift (ohne Doppelpunkt), gefolgt von Aufzählungspunkten ("• ").
+   – Zwischen Abschnitten stehen jeweils zwei Zeilenumbrüche ("\n\n").
+
+3. Inhaltlicher Fokus
+   – NUR Befunde und Informationen verwenden, die EXPLIZIT im Transkript erwähnt werden.
+   – KEINE Informationen erfinden oder hinzufügen, die nicht im Gespräch vorkommen.
+   – Negative Befunde nur erwähnen, wenn sie TATSÄCHLICH im Gespräch dokumentiert wurden.
+   – Verwenden Sie exakte Einheiten und Normbereichsangaben nur, wenn diese im Transkript verfügbar sind.
+
+4. Kritische Datentreue-Regeln
+   – ABSOLUT KEINE Halluzinationen oder erfundene Informationen.
+   – Verwenden Sie AUSSCHLIESSLICH Informationen aus dem bereitgestellten Transkript.
+   – Erfinden Sie KEINE medizinischen Befunde, Symptome oder Untersuchungsergebnisse.
+   – Wenn für einen Abschnitt keine Informationen im Transkript vorhanden sind, schreiben Sie: "• Keine spezifischen Informationen dokumentiert".
+
+Geben Sie ausschließlich den oben beschriebenen SOAP-Text zurück, ohne Titel, Action-Items, JSON-Format oder zusätzliche Erklärungen."#
+                .to_string(),
+        },
+    ]
 }
 
 fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     let mut changed = false;
-    for provider in default_post_process_providers() {
+    let default_providers = default_post_process_providers();
+
+    // Determine the set of allowed provider ids (only local/custom)
+    let allowed_ids: std::collections::HashSet<String> = default_providers
+        .iter()
+        .map(|provider| provider.id.clone())
+        .collect();
+
+    // Prune any legacy providers that are no longer allowed (e.g., OpenAI, Anthropic, etc.)
+    let original_providers_len = settings.post_process_providers.len();
+    settings
+        .post_process_providers
+        .retain(|provider| allowed_ids.contains(&provider.id));
+    if settings.post_process_providers.len() != original_providers_len {
+        changed = true;
+    }
+
+    // Ensure all default providers, API keys, and models are present
+    for provider in &default_providers {
         if settings
             .post_process_providers
             .iter()
@@ -519,18 +558,80 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
             changed = true;
         }
 
-        let default_model = default_model_for_provider(&provider.id);
         match settings.post_process_models.get_mut(&provider.id) {
             Some(existing) => {
-                if existing.is_empty() && !default_model.is_empty() {
-                    *existing = default_model.clone();
-                    changed = true;
-                }
+                // Keep existing model configuration as-is for local/custom providers
+                let _ = existing;
             }
             None => {
                 settings
                     .post_process_models
-                    .insert(provider.id.clone(), default_model);
+                    .insert(provider.id.clone(), String::new());
+                changed = true;
+            }
+        }
+    }
+
+    // Prune API keys and models for non-allowed providers
+    let original_keys_len = settings.post_process_api_keys.len();
+    settings
+        .post_process_api_keys
+        .retain(|id, _| allowed_ids.contains(id));
+    if settings.post_process_api_keys.len() != original_keys_len {
+        changed = true;
+    }
+
+    let original_models_len = settings.post_process_models.len();
+    settings
+        .post_process_models
+        .retain(|id, _| allowed_ids.contains(id));
+    if settings.post_process_models.len() != original_models_len {
+        changed = true;
+    }
+
+    // Ensure the active provider id points to a valid (local/custom) provider
+    if !settings
+        .post_process_providers
+        .iter()
+        .any(|provider| provider.id == settings.post_process_provider_id)
+    {
+        if let Some(default_provider) = default_providers.first() {
+            settings.post_process_provider_id = default_provider.id.clone();
+            changed = true;
+        }
+    }
+
+    // Ensure all default prompts are present
+    let default_prompts = default_post_process_prompts();
+    let existing_prompt_ids: std::collections::HashSet<String> = settings
+        .post_process_prompts
+        .iter()
+        .map(|prompt| prompt.id.clone())
+        .collect();
+
+    for default_prompt in &default_prompts {
+        if !existing_prompt_ids.contains(&default_prompt.id) {
+            settings.post_process_prompts.push(default_prompt.clone());
+            changed = true;
+        }
+    }
+
+    // One-time migration: update legacy SOAP JSON prompt to new SOAP text format
+    if let Some(existing) = settings
+        .post_process_prompts
+        .iter_mut()
+        .find(|prompt| prompt.id == "soap_json_de")
+    {
+        // Old version explicitly mentioned a "parsebares JSON-Objekt"
+        if existing
+            .prompt
+            .contains("parsebares JSON-Objekt mit folgendem Format")
+        {
+            if let Some(new_soap_prompt) = default_prompts
+                .iter()
+                .find(|prompt| prompt.id == "soap_json_de")
+            {
+                *existing = new_soap_prompt.clone();
                 changed = true;
             }
         }

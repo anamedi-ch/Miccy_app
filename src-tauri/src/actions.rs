@@ -1,18 +1,20 @@
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-use crate::apple_intelligence;
 use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{get_settings, AppSettings, APPLE_INTELLIGENCE_PROVIDER_ID};
+use crate::settings::{get_settings, AppSettings};
 use crate::shortcut;
 use crate::tray::{change_tray_icon, TrayIconState};
 use crate::utils::{self, show_recording_overlay, show_transcribing_overlay};
 use crate::ManagedToggleState;
+use crate::{anamedi_client, audio_toolkit::save_wav_file};
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
 use log::{debug, error};
 use once_cell::sync::Lazy;
+use std::borrow::Cow;
 use std::collections::HashMap;
+use std::env;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 use tauri::AppHandle;
@@ -30,6 +32,7 @@ struct TranscribeAction;
 async fn maybe_post_process_transcription(
     settings: &AppSettings,
     transcription: &str,
+    audio_samples: &[f32],
 ) -> Option<String> {
     if !settings.post_process_enabled {
         return None;
@@ -42,20 +45,6 @@ async fn maybe_post_process_transcription(
             return None;
         }
     };
-
-    let model = settings
-        .post_process_models
-        .get(&provider.id)
-        .cloned()
-        .unwrap_or_default();
-
-    if model.trim().is_empty() {
-        debug!(
-            "Post-processing skipped because provider '{}' has no model configured",
-            provider.id
-        );
-        return None;
-    }
 
     let selected_prompt_id = match &settings.post_process_selected_prompt_id {
         Some(id) => id.clone(),
@@ -80,6 +69,27 @@ async fn maybe_post_process_transcription(
         }
     };
 
+    // When using Anamedi as provider, we call the dedicated audio endpoint instead of
+    // the text-based OpenAI-compatible chat completion API.
+    if provider.id == "anamedi" {
+        return maybe_post_process_with_anamedi(settings, transcription, audio_samples, &prompt)
+            .await;
+    }
+
+    let model = settings
+        .post_process_models
+        .get(&provider.id)
+        .cloned()
+        .unwrap_or_default();
+
+    if model.trim().is_empty() {
+        debug!(
+            "Post-processing skipped because provider '{}' has no model configured",
+            provider.id
+        );
+        return None;
+    }
+
     if prompt.trim().is_empty() {
         debug!("Post-processing skipped because the selected prompt is empty");
         return None;
@@ -93,42 +103,6 @@ async fn maybe_post_process_transcription(
     // Replace ${output} variable in the prompt with the actual text
     let processed_prompt = prompt.replace("${output}", transcription);
     debug!("Processed prompt length: {} chars", processed_prompt.len());
-
-    if provider.id == APPLE_INTELLIGENCE_PROVIDER_ID {
-        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-        {
-            if !apple_intelligence::check_apple_intelligence_availability() {
-                debug!("Apple Intelligence selected but not currently available on this device");
-                return None;
-            }
-
-            let token_limit = model.trim().parse::<i32>().unwrap_or(0);
-            return match apple_intelligence::process_text(&processed_prompt, token_limit) {
-                Ok(result) => {
-                    if result.trim().is_empty() {
-                        debug!("Apple Intelligence returned an empty response");
-                        None
-                    } else {
-                        debug!(
-                            "Apple Intelligence post-processing succeeded. Output length: {} chars",
-                            result.len()
-                        );
-                        Some(result)
-                    }
-                }
-                Err(err) => {
-                    error!("Apple Intelligence post-processing failed: {}", err);
-                    None
-                }
-            };
-        }
-
-        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-        {
-            debug!("Apple Intelligence provider selected on unsupported platform");
-            return None;
-        }
-    }
 
     let api_key = settings
         .post_process_api_keys
@@ -162,6 +136,147 @@ async fn maybe_post_process_transcription(
             error!(
                 "LLM post-processing failed for provider '{}': {}. Falling back to original transcription.",
                 provider.id,
+                e
+            );
+            None
+        }
+    }
+}
+
+/// Try to map the app's selected_language to an ISO 639-3 code for Anamedi.
+fn map_language_to_iso_639_3(selected_language: &str) -> Option<Cow<'static, str>> {
+    let normalized = selected_language.to_lowercase();
+    match normalized.as_str() {
+        "auto" | "" => None,
+        "en" | "en-us" | "en-gb" => Some(Cow::Borrowed("eng")),
+        "de" | "de-de" => Some(Cow::Borrowed("deu")),
+        "fr" | "fr-fr" => Some(Cow::Borrowed("fra")),
+        "it" | "it-it" => Some(Cow::Borrowed("ita")),
+        "es" | "es-es" => Some(Cow::Borrowed("spa")),
+        // Fallback: let Anamedi auto-detect
+        _ => None,
+    }
+}
+
+/// Perform post-processing using Anamedi's /api/transcribe-custom-structure endpoint.
+///
+/// This keeps dictation/transcription local while optionally offloading the
+/// summarization/structuring step to Anamedi when explicitly configured.
+async fn maybe_post_process_with_anamedi(
+    settings: &AppSettings,
+    _transcription: &str,
+    audio_samples: &[f32],
+    prompt_text: &str,
+) -> Option<String> {
+    // API key is stored in the generic post_process_api_keys map under the Anamedi provider id.
+    let api_key = match settings.post_process_api_keys.get("anamedi") {
+        Some(key) if !key.trim().is_empty() => key.trim().to_string(),
+        _ => {
+            debug!("Anamedi post-processing skipped because API key is missing");
+            return None;
+        }
+    };
+
+    // Derive schema / instructions from the selected prompt:
+    // - If the prompt is valid JSON, treat it as the schema and omit instructions.
+    // - Otherwise, use a built-in SOAP-style schema and pass the prompt as instructions.
+    let (schema, instructions): (String, Option<String>) = if serde_json::from_str::<serde_json::Value>(prompt_text)
+        .is_ok()
+    {
+        (prompt_text.to_string(), None)
+    } else {
+        let default_schema = r#"{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "Structured medical summary of the encounter in free text"
+    },
+    "keywords": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Important clinical keywords and concepts"
+    },
+    "followUp": {
+      "type": "string",
+      "description": "Recommended follow-up actions or next steps"
+    }
+  },
+  "required": ["summary"]
+}"#;
+        (default_schema.to_string(), Some(prompt_text.to_string()))
+    };
+
+    // Map language if possible, otherwise let Anamedi auto-detect.
+    let language_code = map_language_to_iso_639_3(&settings.selected_language);
+
+    // Write a temporary WAV file for Anamedi from the in-memory samples.
+    let timestamp = chrono::Utc::now().timestamp_millis();
+    let temp_dir = env::temp_dir();
+    let temp_path: PathBuf = temp_dir.join(format!("anamedi-{}.wav", timestamp));
+
+    if let Err(e) = save_wav_file(&temp_path, audio_samples).await {
+        error!(
+            "Failed to write temporary WAV file for Anamedi at {:?}: {}",
+            temp_path, e
+        );
+        return None;
+    }
+
+    let result = anamedi_client::transcribe_custom_structure_with_file(
+        &api_key,
+        &temp_path,
+        &schema,
+        instructions.as_deref(),
+        None,
+        language_code.as_deref(),
+    )
+    .await;
+
+    // Best-effort cleanup of the temporary audio file.
+    if let Err(e) = std::fs::remove_file(&temp_path) {
+        debug!(
+            "Failed to remove temporary Anamedi WAV file {:?}: {}",
+            temp_path, e
+        );
+    }
+
+    match result {
+        Ok(response) => {
+            debug!(
+                "Anamedi post-processing succeeded. Transcript length: {}, structuredData keys: {}",
+                response.transcript.len(),
+                match response.structured_data.as_object() {
+                    Some(obj) => obj.keys().count(),
+                    None => 0,
+                }
+            );
+
+            // Prefer a top-level "summary" field if present, otherwise fall back to pretty JSON.
+            if let Some(summary) = response
+                .structured_data
+                .get("summary")
+                .and_then(|v| v.as_str())
+            {
+                Some(summary.to_string())
+            } else {
+                match serde_json::to_string_pretty(&response.structured_data) {
+                    Ok(text) => Some(text),
+                    Err(e) => {
+                        error!(
+                            "Failed to serialize Anamedi structuredData to JSON: {}",
+                            e
+                        );
+                        None
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            error!(
+                "Anamedi post-processing failed: {}. Falling back to local transcription only.",
                 e
             );
             None
@@ -346,7 +461,12 @@ impl ShortcutAction for TranscribeAction {
                             // Then apply regular post-processing if enabled
                             // Uses final_text which may already have Chinese conversion applied
                             if let Some(processed_text) =
-                                maybe_post_process_transcription(&settings, &final_text).await
+                                maybe_post_process_transcription(
+                                    &settings,
+                                    &final_text,
+                                    &samples_clone,
+                                )
+                                .await
                             {
                                 post_processed_text = Some(processed_text.clone());
                                 final_text = processed_text;
