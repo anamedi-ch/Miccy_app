@@ -257,6 +257,20 @@ jobs:
           fi
           echo "platform=${patched_platform}" >> $GITHUB_OUTPUT
 
+      - name: Disable updater artifacts when signing is disabled
+        if: ${{ !inputs.sign-binaries }}
+        shell: bash
+        run: |
+          # Disable createUpdaterArtifacts when signing is disabled
+          # because updater artifacts require signing and will fail without proper keys
+          # Use Node.js/Bun to modify JSON (works cross-platform)
+          node -e "
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+          config.bundle.createUpdaterArtifacts = false;
+          fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(config, null, 2) + '\n');
+          "
+
       - name: Build with Tauri
         uses: tauri-apps/tauri-action@v0
         env:

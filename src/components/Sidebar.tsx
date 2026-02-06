@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Cog, FlaskConical, History, Info, Sparkles } from "lucide-react";
 import HandyTextLogo from "./icons/HandyTextLogo";
-import HandyHand from "./icons/HandyHand";
+import AnamediLogo from "./icons/AnamediLogo";
 import { useSettings } from "../hooks/useSettings";
 import {
   GeneralSettings,
@@ -33,7 +33,7 @@ interface SectionConfig {
 export const SECTIONS_CONFIG = {
   general: {
     labelKey: "sidebar.general",
-    icon: HandyHand,
+    icon: AnamediLogo,
     component: GeneralSettings,
     enabled: () => true,
   },

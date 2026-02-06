@@ -41,7 +41,7 @@
 
 .bar {
   width: 6px;
-  background: #17422c;
+  background: white;
   max-height: 20px;
   border-radius: 2px;
   transition: height 80ms linear;
@@ -86,7 +86,7 @@
 }
 
 .cancel-button:hover {
-  background: #17422c33;
+  background: rgba(255, 255, 255, 0.2);
   transform: scale(1.05);
 }
 

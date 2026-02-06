@@ -64,9 +64,9 @@ const RecordingOverlay: React.FC = () => {
 
   const getIcon = () => {
     if (state === "recording") {
-      return <MicrophoneIcon />;
+      return <MicrophoneIcon color="white" />;
     } else {
-      return <TranscriptionIcon />;
+      return <TranscriptionIcon color="white" />;
     }
   };
 
@@ -106,7 +106,7 @@ const RecordingOverlay: React.FC = () => {
               commands.cancelOperation();
             }}
           >
-            <CancelIcon />
+            <CancelIcon color="white" />
           </div>
         )}
       </div>
