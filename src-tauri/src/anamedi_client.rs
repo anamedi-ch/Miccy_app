@@ -42,7 +42,7 @@ pub async fn transcribe_custom_structure_with_file(
     );
     headers.insert(
         USER_AGENT,
-        HeaderValue::from_static("Anamedi/1.0 (+https://github.com/cjpais/Anamedi)"),
+        HeaderValue::from_static("Anamedi/1.0 (+https://github.com/anamedi-ch/anamedi_lokal)"),
     );
 
     let client = reqwest::Client::builder()

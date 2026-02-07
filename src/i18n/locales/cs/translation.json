@@ -59,7 +59,7 @@
     }
   },
   "modelSelector": {
-    "welcome": "Vítejte v Anamedi!",
+    "welcome": "Vítejte v Anamedi Local!",
     "downloadPrompt": "Pro zahájení přepisu si níže stáhněte model.",
     "availableModels": "Dostupné modely",
     "downloadModels": "Stáhnout modely",
@@ -85,7 +85,7 @@
     "general": {
       "title": "Obecné",
       "shortcut": {
-        "title": "Zkratky Anamedi",
+        "title": "Zkratky Anamedi Local",
         "description": "Nastavte klávesové zkratky pro spuštění nahrávání řeči na text",
         "loading": "Načítám zkratky...",
         "none": "Žádné zkratky nejsou nastavené",
@@ -162,7 +162,7 @@
       },
       "autostart": {
         "label": "Spouštět při startu",
-        "description": "Automaticky spustit Anamedi po přihlášení do počítače."
+        "description": "Automaticky spustit Anamedi Local po přihlášení do počítače."
       },
       "overlay": {
         "title": "Pozice překryvu",
@@ -300,7 +300,7 @@
       },
       "updateChecks": {
         "label": "Kontrolovat aktualizace",
-        "description": "Automaticky kontrolovat nové verze Anamedi"
+        "description": "Automaticky kontrolovat nové verze Anamedi Local"
       },
       "soundTheme": {
         "label": "Zvukový motiv",
@@ -355,11 +355,11 @@
       "title": "O aplikaci",
       "version": {
         "title": "Verze",
-        "description": "Aktuální verze Anamedi"
+        "description": "Aktuální verze Anamedi Local"
       },
       "appDataDirectory": {
         "title": "Adresář dat aplikace",
-        "description": "Umístění, kde Anamedi ukládá data"
+        "description": "Umístění, kde Anamedi Local ukládá data"
       },
       "sourceCode": {
         "title": "Zdrojový kód",
@@ -368,7 +368,7 @@
       },
       "supportDevelopment": {
         "title": "Podpořte vývoj",
-        "description": "Pomozte nám pokračovat ve vývoji Anamedi",
+        "description": "Pomozte nám pokračovat ve vývoji Anamedi Local",
         "button": "Přispět"
       },
       "acknowledgments": {
@@ -376,7 +376,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "Vysoce výkonné inferenční zpracování modelu automatického rozpoznávání řeči Whisper od OpenAI",
-          "details": "Anamedi používá Whisper.cpp pro rychlé lokální zpracování řeči na text. Díky skvělé práci Georgiho Gerganova a přispěvatelů."
+          "details": "Anamedi Local používá Whisper.cpp pro rychlé lokální zpracování řeči na text. Díky skvělé práci Georgiho Gerganova a přispěvatelů."
         }
       }
     }
@@ -419,7 +419,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Vyžadována oprávnění usnadnění přístupu",
-    "permissionsDescription": "Anamedi potřebuje oprávnění usnadnění přístupu, aby mohlo psát přepsaný text.",
+    "permissionsDescription": "Anamedi Local potřebuje oprávnění usnadnění přístupu, aby mohlo psát přepsaný text.",
     "openSettings": "Otevřít Nastavení systému",
     "dismiss": "Zavřít"
   },
@@ -428,7 +428,7 @@
   },
   "appLanguage": {
     "title": "Jazyk aplikace",
-    "description": "Změňte jazyk rozhraní Anamedi"
+    "description": "Změňte jazyk rozhraní Anamedi Local"
   },
   "overlay": {
     "transcribing": "Přepisuji..."

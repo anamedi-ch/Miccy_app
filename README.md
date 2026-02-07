@@ -1,8 +1,6 @@
-# Anamedi
+# Anamedi Local
 
-# Anamedi
-
-Offline speech-to-text for healthcare professionals. Press a shortcut, speak, and have your words transcribed locally. Optional cloud features for doctors.
+Offline speech-to-text for healthcare professionals. Press a shortcut, speak, and have your words transcribed locally. Runs on macOS, Windows, and Linux. Optional Anamedi Cloud features for doctors. Open source (MIT).
 
 ## Code signing policy
 

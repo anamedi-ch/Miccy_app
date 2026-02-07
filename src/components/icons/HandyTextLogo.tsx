@@ -27,7 +27,7 @@ const HandyTextLogo = ({
         fontWeight="700"
         letterSpacing="1"
       >
-        anamedi
+        anamedi local
       </text>
     </svg>
   );

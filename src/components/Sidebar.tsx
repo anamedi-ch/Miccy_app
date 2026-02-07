@@ -89,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <div className="flex flex-col w-40 h-full border-e border-mid-gray/20 items-center px-2">
       <img
           src={AnamediLogoSvg}
-          alt="Anamedi"
+          alt="Anamedi Local"
           width={120}
           className="m-4 object-contain"
         />

@@ -59,7 +59,7 @@
     },
     "permissions": {
       "title": "Permessi Richiesti",
-      "description": "Anamedi ha bisogno di alcuni permessi per funzionare correttamente.",
+      "description": "Anamedi Local ha bisogno di alcuni permessi per funzionare correttamente.",
       "microphone": {
         "title": "Accesso al Microfono",
         "description": "Necessario per sentire la tua voce per la trascrizione."
@@ -75,7 +75,7 @@
     }
   },
   "modelSelector": {
-    "welcome": "Benvenuto in Anamedi!",
+    "welcome": "Benvenuto in Anamedi Local!",
     "downloadPrompt": "Scarica un modello per cominciare a trascrivere.",
     "availableModels": "Modelli Disponibili",
     "downloadModels": "Scarica Modelli",
@@ -178,7 +178,7 @@
       },
       "autostart": {
         "label": "Avvia all'Accensione",
-        "description": "Avvia Anamedi automaticamente quando accedi al computer."
+        "description": "Avvia Anamedi Local automaticamente quando accedi al computer."
       },
       "overlay": {
         "title": "Posizione della Sovrimpressione",
@@ -316,7 +316,7 @@
       },
       "updateChecks": {
         "label": "Controlla aggiornamenti",
-        "description": "Controlla automaticamente la disponibilità di nuove versioni di Anamedi"
+        "description": "Controlla automaticamente la disponibilità di nuove versioni di Anamedi Local"
       },
       "soundTheme": {
         "label": "Tema Sonoro",
@@ -371,11 +371,11 @@
       "title": "Informazioni",
       "version": {
         "title": "Versione",
-        "description": "Versione attuale di Anamedi"
+        "description": "Versione attuale di Anamedi Local"
       },
       "appDataDirectory": {
         "title": "Cartella Dati App",
-        "description": "Cartella in cui Anamedi salva i dati"
+        "description": "Cartella in cui Anamedi Local salva i dati"
       },
       "sourceCode": {
         "title": "Codice Sorgente",
@@ -384,7 +384,7 @@
       },
       "supportDevelopment": {
         "title": "Supporta lo Sviluppo",
-        "description": "Aiutaci a sviluppare Anamedi",
+        "description": "Aiutaci a sviluppare Anamedi Local",
         "button": "Dona"
       },
       "acknowledgments": {
@@ -392,7 +392,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "Inferenza ad alte prestazioni del modello di riconoscimento vocale automatico Whisper di OpenAI",
-          "details": "Anamedi usa Whisper.cpp per il riconoscimento vocale veloce in locale. Grazie a Georgi Gerganov e collaboratori per il fantastico lavoro."
+          "details": "Anamedi Local usa Whisper.cpp per il riconoscimento vocale veloce in locale. Grazie a Georgi Gerganov e collaboratori per il fantastico lavoro."
         }
       }
     }
@@ -435,7 +435,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Richiesti Permessi di Accessibilità",
-    "permissionsDescription": "Anamedi ha bisogno dei permessi di accessibilità per digitare il testo trascritto.",
+    "permissionsDescription": "Anamedi Local ha bisogno dei permessi di accessibilità per digitare il testo trascritto.",
     "openSettings": "Apri Impostazioni di Sistema",
     "dismiss": "Ignora"
   },
@@ -444,7 +444,7 @@
   },
   "appLanguage": {
     "title": "Lingua Applicazione",
-    "description": "Cambia la lingua dell'interfaccia di Anamedi"
+    "description": "Cambia la lingua dell'interfaccia di Anamedi Local"
   },
   "overlay": {
     "transcribing": "Trascrizione..."

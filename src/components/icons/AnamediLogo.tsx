@@ -20,7 +20,7 @@ const AnamediLogo: React.FC<AnamediLogoProps> = ({
   return (
     <img
       src={anamediIcon}
-      alt="Anamedi"
+      alt="Anamedi Local"
       width={dimension}
       height={dimension}
       className={`object-contain ${className}`.trim()}

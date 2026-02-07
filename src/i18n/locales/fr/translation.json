@@ -1,5 +1,5 @@
 {
-  "_comment": "French translation for Anamedi. Forked from: https://github.com/cjpais/Handy",
+  "_comment": "French translation for Anamedi Local. Forked from: https://github.com/cjpais/Handy",
   "tray": {
     "settings": "Paramètres...",
     "checkUpdates": "Rechercher des mises à jour...",
@@ -60,7 +60,7 @@
     },
     "permissions": {
       "title": "Autorisations requises",
-      "description": "Anamedi a besoin de quelques autorisations pour fonctionner correctement.",
+      "description": "Anamedi Local a besoin de quelques autorisations pour fonctionner correctement.",
       "microphone": {
         "title": "Accès au microphone",
         "description": "Nécessaire pour entendre votre voix pour la transcription."
@@ -76,7 +76,7 @@
     }
   },
   "modelSelector": {
-    "welcome": "Bienvenue sur Anamedi !",
+    "welcome": "Bienvenue sur Anamedi Local !",
     "downloadPrompt": "Téléchargez un modèle ci-dessous pour commencer la transcription.",
     "availableModels": "Modèles Disponibles",
     "downloadModels": "Télécharger des Modèles",
@@ -179,7 +179,7 @@
       },
       "autostart": {
         "label": "Lancer au démarrage",
-        "description": "Démarrer automatiquement Anamedi lorsque vous vous connectez à votre ordinateur."
+        "description": "Démarrer automatiquement Anamedi Local lorsque vous vous connectez à votre ordinateur."
       },
       "overlay": {
         "title": "Position de la fenêtre d'enregistrement",
@@ -317,7 +317,7 @@
       },
       "updateChecks": {
         "label": "Vérifier les mises à jour",
-        "description": "Vérifier automatiquement les nouvelles versions d'Anamedi"
+        "description": "Vérifier automatiquement les nouvelles versions d'Anamedi Local"
       },
       "soundTheme": {
         "label": "Thème sonore",
@@ -372,11 +372,11 @@
       "title": "À propos",
       "version": {
         "title": "Version",
-        "description": "Version actuelle d'Anamedi"
+        "description": "Version actuelle d'Anamedi Local"
       },
       "appDataDirectory": {
         "title": "Emplacement des données de l'application",
-        "description": "Emplacement où Anamedi stocke ses données"
+        "description": "Emplacement où Anamedi Local stocke ses données"
       },
       "sourceCode": {
         "title": "Code source",
@@ -385,7 +385,7 @@
       },
       "supportDevelopment": {
         "title": "Soutenir le développement",
-        "description": "Aidez-nous à continuer à développer Anamedi",
+        "description": "Aidez-nous à continuer à développer Anamedi Local",
         "button": "Faire un don"
       },
       "acknowledgments": {
@@ -393,7 +393,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "Inférence haute performance du modèle de reconnaissance vocale automatique Whisper d'OpenAI",
-          "details": "Anamedi utilise Whisper.cpp pour un traitement rapide et local de la parole en texte. Merci au travail incroyable de Georgi Gerganov et des contributeurs."
+          "details": "Anamedi Local utilise Whisper.cpp pour un traitement rapide et local de la parole en texte. Merci au travail incroyable de Georgi Gerganov et des contributeurs."
         }
       }
     }
@@ -436,7 +436,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Autorisations d'accessibilité requises",
-    "permissionsDescription": "Anamedi a besoin des autorisations d'accessibilité pour taper le texte transcrit.",
+    "permissionsDescription": "Anamedi Local a besoin des autorisations d'accessibilité pour taper le texte transcrit.",
     "openSettings": "Ouvrir les Préférences Système",
     "dismiss": "Ignorer"
   },
@@ -445,7 +445,7 @@
   },
   "appLanguage": {
     "title": "Langue de l'application",
-    "description": "Changer la langue de l'interface d'Anamedi"
+    "description": "Changer la langue de l'interface d'Anamedi Local"
   },
   "overlay": {
     "transcribing": "Transcription..."
