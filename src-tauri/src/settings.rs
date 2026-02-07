@@ -619,22 +619,9 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         }
     }
 
-    // Ensure all default prompts are present
+    // One-time migration: update legacy soap_json_de to new soap prompt BEFORE adding defaults
+    // (avoids ending up with both soap and soap_json_de)
     let default_prompts = default_post_process_prompts();
-    let existing_prompt_ids: std::collections::HashSet<String> = settings
-        .post_process_prompts
-        .iter()
-        .map(|prompt| prompt.id.clone())
-        .collect();
-
-    for default_prompt in &default_prompts {
-        if !existing_prompt_ids.contains(&default_prompt.id) {
-            settings.post_process_prompts.push(default_prompt.clone());
-            changed = true;
-        }
-    }
-
-    // One-time migration: update legacy soap_json_de to new soap prompt if present
     if let Some(existing) = settings
         .post_process_prompts
         .iter_mut()
@@ -649,6 +636,39 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
             if settings.post_process_selected_prompt_id.as_deref() == Some("soap_json_de") {
                 settings.post_process_selected_prompt_id = Some("soap".to_string());
             }
+            changed = true;
+        }
+    }
+
+    // Remove duplicate SOAP (DE) prompts - keep only the first occurrence of id "soap"
+    let original_len = settings.post_process_prompts.len();
+    let mut seen_soap = false;
+    settings.post_process_prompts.retain(|p| {
+        if p.id == "soap" {
+            if seen_soap {
+                false
+            } else {
+                seen_soap = true;
+                true
+            }
+        } else {
+            true
+        }
+    });
+    if settings.post_process_prompts.len() != original_len {
+        changed = true;
+    }
+
+    // Ensure all default prompts are present
+    let existing_prompt_ids: std::collections::HashSet<String> = settings
+        .post_process_prompts
+        .iter()
+        .map(|prompt| prompt.id.clone())
+        .collect();
+
+    for default_prompt in &default_prompts {
+        if !existing_prompt_ids.contains(&default_prompt.id) {
+            settings.post_process_prompts.push(default_prompt.clone());
             changed = true;
         }
     }
