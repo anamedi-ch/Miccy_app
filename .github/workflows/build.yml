@@ -257,17 +257,22 @@ jobs:
           fi
           echo "platform=${patched_platform}" >> $GITHUB_OUTPUT
 
-      - name: Disable updater artifacts when signing is disabled
+      - name: Disable updater artifacts and macOS signing when signing is disabled
         if: ${{ !inputs.sign-binaries }}
         shell: bash
         run: |
           # Disable createUpdaterArtifacts when signing is disabled
           # because updater artifacts require signing and will fail without proper keys
-          # Use Node.js/Bun to modify JSON (works cross-platform)
+          # On macOS: set signingIdentity to null and hardenedRuntime to false
+          # so the bundler skips code signing (no certificate import needed)
           node -e "
           const fs = require('fs');
           const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
           config.bundle.createUpdaterArtifacts = false;
+          if (config.bundle.macOS) {
+            config.bundle.macOS.signingIdentity = null;
+            config.bundle.macOS.hardenedRuntime = false;
+          }
           fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(config, null, 2) + '\n');
           "
 
