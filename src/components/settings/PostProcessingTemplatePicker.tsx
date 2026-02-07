@@ -40,9 +40,11 @@ export const PostProcessingTemplatePicker: React.FC<
     >
       <Dropdown
         selectedValue={selectedPromptId || null}
-        options={prompts.map((prompt: { id: string; name: string }) => ({
+        options={prompts.map((prompt: { id: string; name: string; description?: string | null }) => ({
           value: prompt.id,
-          label: prompt.name,
+          label: prompt.description
+            ? `${prompt.name} — ${prompt.description}`
+            : prompt.name,
         }))}
         onSelect={(value) => handlePromptSelect(value)}
         placeholder={

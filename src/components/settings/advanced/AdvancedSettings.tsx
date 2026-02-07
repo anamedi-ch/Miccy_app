@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { ShowOverlay } from "../ShowOverlay";
 import { TranslateToEnglish } from "../TranslateToEnglish";
 import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
@@ -18,11 +19,13 @@ import { RecordingRetentionPeriodSelector } from "../RecordingRetentionPeriod";
 import { ExperimentalToggle } from "../ExperimentalToggle";
 import { useSettings } from "../../../hooks/useSettings";
 import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationSelector";
+import { Button } from "../../ui/Button";
 
 export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
   const { currentModel, getModelInfo } = useModelStore();
   const { getSetting } = useSettings();
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const currentModelInfo = getModelInfo(currentModel);
   const showTranslateToEnglish =
     currentModelInfo?.engine_type === "Whisper" && currentModel !== "turbo";
@@ -34,30 +37,52 @@ export const AdvancedSettings: React.FC = () => {
         <StartHidden descriptionMode="tooltip" grouped={true} />
         <AutostartToggle descriptionMode="tooltip" grouped={true} />
         <ShowOverlay descriptionMode="tooltip" grouped={true} />
-        <ModelUnloadTimeoutSetting descriptionMode="tooltip" grouped={true} />
+        {showAdvancedOptions && (
+          <ModelUnloadTimeoutSetting descriptionMode="tooltip" grouped={true} />
+        )}
         <ExperimentalToggle descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.advanced.groups.output")}>
-        <PasteMethodSetting descriptionMode="tooltip" grouped={true} />
-        <ClipboardHandlingSetting descriptionMode="tooltip" grouped={true} />
-      </SettingsGroup>
+      <div className="px-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+          className="flex items-center gap-2 text-mid-gray hover:text-logo-primary"
+        >
+          {showAdvancedOptions ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
+          <span>{t("settings.advanced.showAdvancedOptions.label")}</span>
+        </Button>
+      </div>
 
-      <SettingsGroup title={t("settings.advanced.groups.transcription")}>
-        {showTranslateToEnglish && (
-          <TranslateToEnglish descriptionMode="tooltip" grouped={true} />
-        )}
-        <CustomWords descriptionMode="tooltip" grouped />
-        <AppendTrailingSpace descriptionMode="tooltip" grouped={true} />
-      </SettingsGroup>
+      {showAdvancedOptions && (
+        <>
+          <SettingsGroup title={t("settings.advanced.groups.output")}>
+            <PasteMethodSetting descriptionMode="tooltip" grouped={true} />
+            <ClipboardHandlingSetting descriptionMode="tooltip" grouped={true} />
+          </SettingsGroup>
 
-      <SettingsGroup title={t("settings.advanced.groups.history")}>
-        <HistoryLimit descriptionMode="tooltip" grouped={true} />
-        <RecordingRetentionPeriodSelector
-          descriptionMode="tooltip"
-          grouped={true}
-        />
-      </SettingsGroup>
+          <SettingsGroup title={t("settings.advanced.groups.transcription")}>
+            {showTranslateToEnglish && (
+              <TranslateToEnglish descriptionMode="tooltip" grouped={true} />
+            )}
+            <CustomWords descriptionMode="tooltip" grouped />
+            <AppendTrailingSpace descriptionMode="tooltip" grouped={true} />
+          </SettingsGroup>
+
+          <SettingsGroup title={t("settings.advanced.groups.history")}>
+            <HistoryLimit descriptionMode="tooltip" grouped={true} />
+            <RecordingRetentionPeriodSelector
+              descriptionMode="tooltip"
+              grouped={true}
+            />
+          </SettingsGroup>
+        </>
+      )}
 
       {experimentalEnabled && (
         <SettingsGroup title={t("settings.advanced.groups.experimental")}>

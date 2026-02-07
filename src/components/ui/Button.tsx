@@ -13,23 +13,23 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseClasses =
-    "font-medium rounded border focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+    "font-medium rounded-lg border focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
 
   const variantClasses = {
     primary:
-      "text-white bg-background-ui border-background-ui hover:bg-background-ui/80 hover:border-background-ui/80 focus:ring-1 focus:ring-background-ui",
+      "text-white bg-background-ui border-background-ui shadow-sm hover:bg-background-ui/90 hover:shadow-md active:scale-[0.98] focus:ring-2 focus:ring-background-ui/40 focus:ring-offset-2 focus:ring-offset-background",
     secondary:
-      "bg-mid-gray/10 border-mid-gray/20 hover:bg-background-ui/30 hover:border-logo-primary focus:outline-none",
+      "bg-background border-mid-gray/25 text-text hover:bg-mid-gray/10 hover:border-mid-gray/40 active:scale-[0.98] focus:ring-2 focus:ring-logo-primary/20 focus:ring-offset-2 focus:ring-offset-background focus:border-logo-primary",
     danger:
-      "text-white bg-red-600 border-mid-gray/20 hover:bg-red-700 hover:border-red-700 focus:ring-1 focus:ring-red-500",
+      "text-white bg-red-600 border-red-600 shadow-sm hover:bg-red-700 hover:border-red-700 hover:shadow-md active:scale-[0.98] focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2 focus:ring-offset-background",
     ghost:
-      "text-current border-transparent hover:bg-mid-gray/10 hover:border-logo-primary focus:bg-mid-gray/20",
+      "text-current border-transparent hover:bg-mid-gray/10 active:scale-[0.98] focus:ring-2 focus:ring-logo-primary/20 focus:ring-offset-2 focus:ring-offset-background",
   };
 
   const sizeClasses = {
-    sm: "px-2 py-1 text-xs",
-    md: "px-4 py-[5px] text-sm",
-    lg: "px-4 py-2 text-base",
+    sm: "px-3 py-1.5 text-xs",
+    md: "px-4 py-2 text-sm",
+    lg: "px-5 py-2.5 text-base",
   };
 
   return (

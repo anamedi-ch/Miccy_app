@@ -287,7 +287,9 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
             selectedValue={selectedPromptId || null}
             options={prompts.map((p) => ({
               value: p.id,
-              label: p.name,
+              label: p.description
+                ? `${p.name} — ${p.description}`
+                : p.name,
             }))}
             onSelect={(value) => handlePromptSelect(value)}
             placeholder={
@@ -379,7 +381,7 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
 
         {isCreating && (
           <div className="space-y-3">
-            <div className="space-y-2 block flex flex-col">
+            <div className="space-y-2 flex flex-col">
               <label className="text-sm font-semibold text-text">
                 {t("settings.postProcessing.prompts.promptLabel")}
               </label>

@@ -172,6 +172,10 @@
         "history": "History",
         "experimental": "Experimental"
       },
+      "showAdvancedOptions": {
+        "label": "Show advanced options",
+        "description": "Reveal fine-grained settings for output, transcription, and history"
+      },
       "experimentalToggle": {
         "label": "Experimental Features",
         "description": "Enable experimental features that are still in development."
@@ -382,6 +386,10 @@
     },
     "about": {
       "title": "About",
+      "showTechnicalDetails": {
+        "label": "Show technical details",
+        "description": "Display app data and log file paths"
+      },
       "version": {
         "title": "Version",
         "description": "Current version of Anamedi"

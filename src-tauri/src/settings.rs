@@ -86,6 +86,8 @@ pub struct ShortcutBinding {
 pub struct LLMPrompt {
     pub id: String,
     pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
     pub prompt: String,
 }
 
@@ -431,91 +433,107 @@ fn default_post_process_models() -> HashMap<String, String> {
 fn default_post_process_prompts() -> Vec<LLMPrompt> {
     vec![
         LLMPrompt {
-            id: "default_improve_transcriptions".to_string(),
-            name: "Improve Transcriptions".to_string(),
-            prompt: r#"Clean this transcript:
-1. Fix spelling, capitalization, and punctuation errors
-2. Convert number words to digits (twenty-five → 25, ten percent → 10%, five dollars → $5)
-3. Replace spoken punctuation with symbols (period → ., comma → ,, question mark → ?)
-4. Remove filler words (um, uh, like as filler)
-5. Keep the language in the original version (if it was french, keep it in french for example)
-
-Preserve exact meaning and word order. Do not paraphrase or reorder content.
-
-Return only the cleaned transcript.
-
-Transcript:
-${output}"#
-                .to_string(),
-        },
-        LLMPrompt {
-            id: "summary_bullets".to_string(),
-            name: "Summarize Transcript (Bullets)".to_string(),
-            prompt: r#"You are an assistant that summarizes spoken transcripts.
-Summarize the following transcript as a concise bullet list.
-
-Guidelines:
-- Keep the language of the original transcript.
-- Focus on the most important points, decisions, and action items.
-- Use short, clear bullet points.
-- Do not add information that is not explicitly mentioned.
-
-Transcript:
-${output}"#
-                .to_string(),
-        },
-        LLMPrompt {
-            id: "soap_json_de".to_string(),
+            id: "soap".to_string(),
             name: "SOAP (DE)".to_string(),
-            prompt: r#"Das Folgende ist eine wörtliche Abschrift eines ärztlichen Gesprächs in der hausärztlichen Versorgung.
-Verwenden Sie AUSSCHLIESSLICH Informationen aus diesem Transkript und erfinden Sie NICHTS hinzu.
+            description: Some("Standard medical documentation (Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere)".to_string()),
+            prompt: r#"Das Folgende ist eine wörtliche Abschrift eines ärztlichen Gesprächs in der hausärztlichen Versorgung. Erstellen Sie daraus eine strukturierte ärztliche Dokumentation im SOAP-Format.
 
 Transkript:
 ${output}
 
-Erstellen Sie daraus eine strukturierte ärztliche Dokumentation im SOAP-Format mit den folgenden Abschnitten:
+Verwenden Sie exakt diese fünf Abschnitte: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere. Jeder Abschnitt beginnt mit seiner Überschrift (ohne Doppelpunkt), gefolgt von Aufzählungspunkten ("• "). Zwischen Abschnitten zwei Zeilenumbrüche ("\n\n").
 
-Subjektiv:
-• ...
+WICHTIGE REGELN:
+- Verwenden Sie medizinische Terminologie (z. B. "Dyspnoe", "Hypertonus") und typische ärztliche Floskeln ("es imponiert...", "klinisch unauffällig").
+- NUR Befunde und Informationen verwenden, die EXPLIZIT im Transkript erwähnt werden. KEINE Halluzinationen.
+- Wenn für einen Abschnitt keine Informationen vorliegen: "• Keine spezifischen Informationen dokumentiert".
 
-Objektiv:
-• ...
+Geben Sie ausschließlich den SOAP-Text zurück, ohne Titel, Action-Items, JSON oder zusätzliche Erklärungen."#
+                .to_string(),
+        },
+        LLMPrompt {
+            id: "psychology".to_string(),
+            name: "Psychology".to_string(),
+            description: Some("Psychotherapeutic narrative report (psychopathologischer Befund, Anamnese, Behandlungsplan)".to_string()),
+            prompt: r#"Das Folgende ist eine Abschrift einer Sprachnachricht eines Psychologen oder Psychotherapeuten. Erstellen Sie daraus einen psychologischen Befund im narrativen Format.
 
-Untersuchung:
-• ...
+Transkript:
+${output}
 
-Beurteilung:
-• ...
+Verwenden Sie einen fließenden, narrativen Schreibstil. Lassen Sie Abschnitte ohne Informationen WEG. Mögliche Abschnitte: Psychopathologischer Befund, Grund der Therapie, Psychiatrische Anamnese, Medizinische Anamnese, Arbeit, Beziehungen und Partnerschaften, Ziele und Erwartungen, Behandlungsplan.
 
-Procedere:
-• ...
+WICHTIGE REGELN:
+- NUR Informationen aus dem Transkript verwenden. KEINE erfundenen Informationen.
+- Vermeiden Sie Wiederholungen von Sätzen oder Phrasen.
+- Jeder Abschnitt in vollständigen Sätzen, keine Aufzählungspunkte.
+- Zwischen Abschnitten eine Leerzeile.
 
-WICHTIGE STILREGELN:
+Geben Sie ausschließlich den narrativen Befund zurück, ohne Titel, Action-Items, JSON oder zusätzliche Erklärungen."#
+                .to_string(),
+        },
+        LLMPrompt {
+            id: "soap_special".to_string(),
+            name: "SOAP Special".to_string(),
+            description: Some("SOAP with lifestyle & anamnesis focus (Ernährung, Schlaf, Sport, Alkohol, Medikation)".to_string()),
+            prompt: r#"Das Folgende ist eine wörtliche Abschrift eines ärztlichen Gesprächs in der hausärztlichen Versorgung. Erstellen Sie daraus eine strukturierte ärztliche Dokumentation im SOAP-Format mit besonderem Fokus auf Lifestyle-Anamnese.
 
-1. Fachsprache & Ausdruck
-   – Verwenden Sie medizinische Terminologie, wo immer möglich (z. B. "Dyspnoe" statt "Atemnot", "Hypertonus" statt "Bluthochdruck").
-   – Verwenden Sie typische ärztliche Floskeln wie "es imponiert...", "klinisch unauffällig", "anamnestisch", "im Rahmen der Differenzialdiagnose" etc.
-   – Verwenden Sie Passivkonstruktionen und Nominalstil (z. B. "es erfolgte die Durchführung einer..." statt "wir haben ... gemacht").
-   – Der Text soll den Ton eines überakademisierten, hyperpräzisen Klinikers haben, der jeden Befund dokumentiert.
+Transkript:
+${output}
 
-2. Struktur
-   – Verwenden Sie exakt diese fünf Abschnitte: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere.
-   – Jeder Abschnitt beginnt mit seiner Überschrift (ohne Doppelpunkt), gefolgt von Aufzählungspunkten ("• ").
-   – Zwischen Abschnitten stehen jeweils zwei Zeilenumbrüche ("\n\n").
+Verwenden Sie exakt diese fünf Abschnitte: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere. Erfassen Sie beiläufig erwähnte Themen und ordnen Sie sie dem richtigen Abschnitt zu:
+- Ernährung (vegetarisch, Essgewohnheiten) → Beurteilung
+- Alkoholkonsum (Menge, Frequenz) → Beurteilung
+- Medikation/Supplements → Beurteilung
+- Schlafqualität (Einschlafprobleme, Schnarchen) → Beurteilung
+- Aktivität/Sport → Beurteilung
+- Persönliche/Familiäre Anamnese, Soziale Situation → Beurteilung
 
-3. Inhaltlicher Fokus
-   – NUR Befunde und Informationen verwenden, die EXPLIZIT im Transkript erwähnt werden.
-   – KEINE Informationen erfinden oder hinzufügen, die nicht im Gespräch vorkommen.
-   – Negative Befunde nur erwähnen, wenn sie TATSÄCHLICH im Gespräch dokumentiert wurden.
-   – Verwenden Sie exakte Einheiten und Normbereichsangaben nur, wenn diese im Transkript verfügbar sind.
+WICHTIG: Mehrere Themen in einem Satz splitten und jeweils im passenden Abschnitt dokumentieren. NUR Informationen aus dem Gespräch. Kein Halluzinieren.
 
-4. Kritische Datentreue-Regeln
-   – ABSOLUT KEINE Halluzinationen oder erfundene Informationen.
-   – Verwenden Sie AUSSCHLIESSLICH Informationen aus dem bereitgestellten Transkript.
-   – Erfinden Sie KEINE medizinischen Befunde, Symptome oder Untersuchungsergebnisse.
-   – Wenn für einen Abschnitt keine Informationen im Transkript vorhanden sind, schreiben Sie: "• Keine spezifischen Informationen dokumentiert".
+Geben Sie ausschließlich den SOAP-Text zurück, ohne Titel, Action-Items, JSON oder zusätzliche Erklärungen."#
+                .to_string(),
+        },
+        LLMPrompt {
+            id: "soap_problems".to_string(),
+            name: "SOAP Problems".to_string(),
+            description: Some("Problem-oriented documentation with 41 standardized categories (Swiss GP)".to_string()),
+            prompt: r#"Das Folgende ist eine wörtliche Abschrift eines Arzt-Patienten-Gesprächs in einer Schweizer Hausarztpraxis. Strukturieren Sie das Gespräch problemorientiert.
 
-Geben Sie ausschließlich den oben beschriebenen SOAP-Text zurück, ohne Titel, Action-Items, JSON-Format oder zusätzliche Erklärungen."#
+Transkript:
+${output}
+
+Erkennen Sie 2–6 klinische Probleme und ordnen Sie JEDES Problem einer der 41 standardisierten Kategorien zu (z. B. S27=Haut, K85=arterielle Hypertonie, T90=Diabetes mellitus, P03=Depression, U14=Nierenprobleme, L03=Rückenproblem, etc.). Verstehen Sie Schwiizerdütsch und übertragen Sie es korrekt ins Deutsche.
+
+Für jedes Problem: SOAP mit kurzen, präzisen Bulletpoints. Nur Informationen aus dem Transkript. Unklare Aussagen unter "unassigned" ablegen.
+
+Format: Für jedes Problem die Überschrift "Problem X: [Titel]", darunter Subjektiv, Objektiv, Beurteilung, Procedere mit Aufzählungspunkten.
+
+Geben Sie ausschließlich die strukturierte problemorientierte Dokumentation zurück, ohne Gesamttitel, Action-Items, JSON oder zusätzliche Erklärungen. Verwenden Sie schweizerische Fachsprache wo passend."#
+                .to_string(),
+        },
+        LLMPrompt {
+            id: "soap_nephrology".to_string(),
+            name: "SOAP Nephrology".to_string(),
+            description: Some("SOAP with kidney focus and systematic physical exam (top-down: Kopf → Thorax → Abdomen → Genital → Extremitäten)".to_string()),
+            prompt: r#"Das Folgende ist eine wörtliche Abschrift eines ärztlichen Gesprächs in der hausärztlichen Versorgung. Erstellen Sie daraus eine strukturierte ärztliche Dokumentation im SOAP-Format mit nephrologischem Fokus.
+
+Transkript:
+${output}
+
+Verwenden Sie exakt diese fünf Abschnitte: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere.
+
+Für den Abschnitt Untersuchung gilt folgende top-down Struktur (falls im Gespräch enthalten):
+- Kopf/Hals: Pupillen, Karotiden, Jugularvenen
+- Thorax: Herztöne, Auskultation, Atemgeräusche
+- Abdomen: Darmgeräusche, Palpation, Leber/Milz
+- Genital/DRU: Prostata, äußere Genitalien
+- Extremitäten: Ödeme, Pulse, Reflexe
+
+Dokumentieren Sie Kreislaufsituation und Flüssigkeitsstatus (Ödeme, Hautturgor) präzise. Laborwerte (Kreatinin, GFR, Kalium) nur wenn im Gespräch genannt. Bei nephrologischen Diagnosen: exakte Begriffe wie "nephrotisches Syndrom", "chronische Niereninsuffizienz Stadium 3a", "Proteinurie".
+
+NUR Informationen aus dem Transkript. Keine Halluzinationen. Wenn keine Informationen vorliegen: "• Keine spezifischen Informationen dokumentiert".
+
+Geben Sie ausschließlich den SOAP-Text zurück, ohne Titel, Action-Items, JSON oder zusätzliche Erklärungen."#
                 .to_string(),
         },
     ]
@@ -616,24 +634,22 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         }
     }
 
-    // One-time migration: update legacy SOAP JSON prompt to new SOAP text format
+    // One-time migration: update legacy soap_json_de to new soap prompt if present
     if let Some(existing) = settings
         .post_process_prompts
         .iter_mut()
         .find(|prompt| prompt.id == "soap_json_de")
     {
-        // Old version explicitly mentioned a "parsebares JSON-Objekt"
-        if existing
-            .prompt
-            .contains("parsebares JSON-Objekt mit folgendem Format")
+        if let Some(new_soap_prompt) = default_prompts.iter().find(|prompt| prompt.id == "soap")
         {
-            if let Some(new_soap_prompt) = default_prompts
-                .iter()
-                .find(|prompt| prompt.id == "soap_json_de")
-            {
-                *existing = new_soap_prompt.clone();
-                changed = true;
+            existing.id = new_soap_prompt.id.clone();
+            existing.name = new_soap_prompt.name.clone();
+            existing.description = new_soap_prompt.description.clone();
+            existing.prompt = new_soap_prompt.prompt.clone();
+            if settings.post_process_selected_prompt_id.as_deref() == Some("soap_json_de") {
+                settings.post_process_selected_prompt_id = Some("soap".to_string());
             }
+            changed = true;
         }
     }
 

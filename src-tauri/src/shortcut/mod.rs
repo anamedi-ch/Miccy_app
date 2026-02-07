@@ -789,6 +789,7 @@ pub fn add_post_process_prompt(
     let new_prompt = LLMPrompt {
         id: id.clone(),
         name,
+        description: None,
         prompt,
     };
 
