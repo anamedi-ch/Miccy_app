@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "anamedi"
-version = "0.0.1"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4816,7 +4816,7 @@ checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
 [[package]]
 name = "rdev"
 version = "0.5.0-2"
-source = "git+https://github.com/rustdesk-org/rdev#a90dbe1172f8832f54c97c62e823c5a34af5fdfe"
+source = "git+https://github.com/rustdesk-org/rdev?rev=a90dbe1172f8832f54c97c62e823c5a34af5fdfe#a90dbe1172f8832f54c97c62e823c5a34af5fdfe"
 dependencies = [
  "cocoa 0.24.1",
  "core-foundation 0.9.4",
@@ -5054,7 +5054,7 @@ dependencies = [
 [[package]]
 name = "rodio"
 version = "0.20.1"
-source = "git+https://github.com/cjpais/rodio.git#fed30292db417cb95305c118c0e1d804fb74cbff"
+source = "git+https://github.com/cjpais/rodio.git?rev=fed30292db417cb95305c118c0e1d804fb74cbff#fed30292db417cb95305c118c0e1d804fb74cbff"
 dependencies = [
  "cpal",
  "dasp_sample",
@@ -7268,7 +7268,7 @@ dependencies = [
 [[package]]
 name = "vad-rs"
 version = "0.1.5"
-source = "git+https://github.com/cjpais/vad-rs#88b3a01f72f83a5d80d0e7ea9bacfc0d897fd03f"
+source = "git+https://github.com/cjpais/vad-rs?rev=88b3a01f72f83a5d80d0e7ea9bacfc0d897fd03f#88b3a01f72f83a5d80d0e7ea9bacfc0d897fd03f"
 dependencies = [
  "eyre",
  "ndarray",

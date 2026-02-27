@@ -1,0 +1,28 @@
+name: "Release (Microsoft Store)"
+
+on: workflow_dispatch
+
+jobs:
+  build-msstore:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "windows-latest"
+            args: "--config src-tauri/tauri.microsoftstore.conf.json"
+            target: "x86_64-pc-windows-msvc"
+          - platform: "windows-11-arm"
+            args: "--target aarch64-pc-windows-msvc --config src-tauri/tauri.microsoftstore.conf.json"
+            target: "aarch64-pc-windows-msvc"
+
+    uses: ./.github/workflows/build.yml
+    with:
+      platform: ${{ matrix.platform }}
+      target: ${{ matrix.target }}
+      build-args: ${{ matrix.args }}
+      sign-binaries: true
+      asset-prefix: "anamedi-msstore"
+      upload-artifacts: true
+    secrets: inherit
