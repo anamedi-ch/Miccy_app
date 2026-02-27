@@ -42,7 +42,7 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "targets": "all",
-    "publisher": "Anamedi CH",
+    "publisher": "Anamedi GmbH",
     "resources": [
       "resources/**/*"
     ],
