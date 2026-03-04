@@ -81,7 +81,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM4ODY5MjBBMUFDREM2Q0QKUldUTnhzMGFDcEtHT0Q2azhjWnRkdkpQZGsyVVNKTXhtbHFMK3NrVXVMTTJXZVhFcEdzeFB6YkgK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVERjk1OUY1N0RFREQzRTQKUldUazArMTk5Vm41N1VNQlVvWmlQWkNRcVUxcmlabXgvQytXL0hLVktuTlFwWnN4Ym1tQzdadmwK",
       "endpoints": [
         "https://github.com/anamedi-ch/anamedi_lokal/releases/latest/download/latest.json"
       ]
