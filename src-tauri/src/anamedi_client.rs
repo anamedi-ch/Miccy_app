@@ -84,7 +84,10 @@ pub async fn transcribe_custom_structure_with_file(
     }
 
     let url = "https://app.anamedi.com/api/transcribe-custom-structure";
-    debug!("Sending Anamedi transcribe-custom-structure request to {}", url);
+    debug!(
+        "Sending Anamedi transcribe-custom-structure request to {}",
+        url
+    );
 
     let response = client
         .post(url)
@@ -106,14 +109,12 @@ pub async fn transcribe_custom_structure_with_file(
         ));
     }
 
-    let parsed: AnamediCustomStructureResponse =
-        serde_json::from_str(&body).map_err(|e| {
-            format!(
-                "Failed to parse Anamedi response JSON: {}. Body: {}",
-                e, body
-            )
-        })?;
+    let parsed: AnamediCustomStructureResponse = serde_json::from_str(&body).map_err(|e| {
+        format!(
+            "Failed to parse Anamedi response JSON: {}. Body: {}",
+            e, body
+        )
+    })?;
 
     Ok(parsed)
 }
-

@@ -2,7 +2,15 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { AudioPlayer } from "../../ui/AudioPlayer";
 import { Button } from "../../ui/Button";
-import { Copy, Star, Check, Trash2, FolderOpen } from "lucide-react";
+import {
+  Copy,
+  Star,
+  Check,
+  Trash2,
+  FolderOpen,
+  RefreshCcw,
+  LoaderCircle,
+} from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { readFile } from "@tauri-apps/plugin-fs";
@@ -36,6 +44,7 @@ export const HistorySettings: React.FC = () => {
   const osType = useOsType();
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [retryingIds, setRetryingIds] = useState<Set<number>>(new Set());
 
   const loadHistoryEntries = useCallback(async () => {
     try {
@@ -132,6 +141,22 @@ export const HistorySettings: React.FC = () => {
     }
   };
 
+  const retryHistoryEntry = async (id: number) => {
+    setRetryingIds((previousIds) => new Set(previousIds).add(id));
+    try {
+      await commands.retryHistoryEntryTranscription(id);
+    } catch (error) {
+      console.error("Failed to retry history entry transcription:", error);
+      window.alert(t("settings.history.retryError"));
+    } finally {
+      setRetryingIds((previousIds) => {
+        const nextIds = new Set(previousIds);
+        nextIds.delete(id);
+        return nextIds;
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-3xl w-full mx-auto space-y-6">
@@ -203,9 +228,11 @@ export const HistorySettings: React.FC = () => {
                 key={entry.id}
                 entry={entry}
                 onToggleSaved={() => toggleSaved(entry.id)}
-                onCopyText={() => copyToClipboard(entry.transcription_text)}
+                onCopyText={(text) => copyToClipboard(text)}
+                onRetry={() => retryHistoryEntry(entry.id)}
                 getAudioUrl={getAudioUrl}
                 deleteAudio={deleteAudioEntry}
+                isRetrying={retryingIds.has(entry.id)}
               />
             ))}
           </div>
@@ -218,20 +245,31 @@ export const HistorySettings: React.FC = () => {
 interface HistoryEntryProps {
   entry: HistoryEntry;
   onToggleSaved: () => void;
-  onCopyText: () => void;
+  onCopyText: (text: string) => void;
+  onRetry: () => Promise<void>;
   getAudioUrl: (fileName: string) => Promise<string | null>;
   deleteAudio: (id: number) => Promise<void>;
+  isRetrying: boolean;
 }
+
+const getDisplayText = (entry: HistoryEntry): string =>
+  entry.post_processed_text?.trim() || entry.transcription_text;
 
 const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   entry,
   onToggleSaved,
   onCopyText,
+  onRetry,
   getAudioUrl,
   deleteAudio,
+  isRetrying,
 }) => {
   const { t, i18n } = useTranslation();
   const [showCopied, setShowCopied] = useState(false);
+  const isPending = isRetrying || entry.status === "pending";
+  const isFailed = entry.status === "failed";
+  const displayText = getDisplayText(entry);
+  const hasTranscription = displayText.trim().length > 0;
 
   const handleLoadAudio = useCallback(
     () => getAudioUrl(entry.file_name),
@@ -239,7 +277,10 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   );
 
   const handleCopyText = () => {
-    onCopyText();
+    if (!hasTranscription) {
+      return;
+    }
+    onCopyText(displayText);
     setShowCopied(true);
     setTimeout(() => setShowCopied(false), 2000);
   };
@@ -249,7 +290,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
       await deleteAudio(entry.id);
     } catch (error) {
       console.error("Failed to delete entry:", error);
-      alert("Failed to delete entry. Please try again.");
+      window.alert(t("settings.history.deleteError"));
     }
   };
 
@@ -258,11 +299,27 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   return (
     <div className="px-4 py-2 pb-5 flex flex-col gap-3">
       <div className="flex justify-between items-center">
-        <p className="text-sm font-medium">{formattedDate}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium">{formattedDate}</p>
+          {(isPending || isFailed) && (
+            <span
+              className={`text-[11px] px-2 py-0.5 rounded-full border ${
+                isPending
+                  ? "border-logo-primary/30 text-logo-primary"
+                  : "border-red-500/30 text-red-400"
+              }`}
+            >
+              {isPending
+                ? t("settings.history.status.pending")
+                : t("settings.history.status.failed")}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1">
           <button
             onClick={handleCopyText}
-            className="text-text/50 hover:text-logo-primary  hover:border-logo-primary transition-colors cursor-pointer"
+            disabled={!hasTranscription}
+            className="text-text/50 hover:text-logo-primary  hover:border-logo-primary transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             title={t("settings.history.copyToClipboard")}
           >
             {showCopied ? (
@@ -273,11 +330,12 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
           </button>
           <button
             onClick={onToggleSaved}
+            disabled={isPending}
             className={`p-2 rounded  transition-colors cursor-pointer ${
               entry.saved
                 ? "text-logo-primary hover:text-logo-primary/80"
                 : "text-text/50 hover:text-logo-primary"
-            }`}
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
             title={
               entry.saved
                 ? t("settings.history.unsave")
@@ -290,18 +348,48 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
               fill={entry.saved ? "currentColor" : "none"}
             />
           </button>
+          {isFailed && (
+            <button
+              onClick={() => {
+                onRetry().catch((error) => {
+                  console.error("Failed to retry entry:", error);
+                });
+              }}
+              disabled={isPending}
+              className="text-text/50 hover:text-logo-primary transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              title={t("settings.history.retry")}
+            >
+              {isPending ? (
+                <LoaderCircle width={16} height={16} className="animate-spin" />
+              ) : (
+                <RefreshCcw width={16} height={16} />
+              )}
+            </button>
+          )}
           <button
             onClick={handleDeleteEntry}
-            className="text-text/50 hover:text-logo-primary transition-colors cursor-pointer"
+            disabled={isPending}
+            className="text-text/50 hover:text-logo-primary transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             title={t("settings.history.delete")}
           >
             <Trash2 width={16} height={16} />
           </button>
         </div>
       </div>
-      <p className="italic text-text/90 text-sm pb-2 select-text cursor-text">
-        {entry.transcription_text}
-      </p>
+      {isPending ? (
+        <div className="flex items-center gap-2 text-sm text-text/70 pb-2">
+          <LoaderCircle width={14} height={14} className="animate-spin" />
+          <span>{t("settings.history.status.pending")}</span>
+        </div>
+      ) : isFailed ? (
+        <p className="text-sm text-red-400 pb-2 select-text cursor-text">
+          {entry.transcription_error || t("settings.history.status.failed")}
+        </p>
+      ) : (
+        <p className="italic text-text/90 text-sm pb-2 select-text cursor-text">
+          {displayText}
+        </p>
+      )}
       <AudioPlayer onLoadRequest={handleLoadAudio} className="w-full" />
     </div>
   );

@@ -5,7 +5,7 @@ use crate::managers::transcription::TranscriptionManager;
 use crate::settings::{get_settings, AppSettings};
 use crate::shortcut;
 use crate::tray::{change_tray_icon, TrayIconState};
-use crate::utils::{self, show_recording_overlay, show_transcribing_overlay};
+use crate::utils::{self, show_recording_overlay, show_structuring_overlay, show_transcribing_overlay};
 use crate::ManagedToggleState;
 use crate::{anamedi_client, audio_toolkit::save_wav_file};
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
@@ -28,6 +28,13 @@ pub trait ShortcutAction: Send + Sync {
 
 // Transcribe Action
 struct TranscribeAction;
+
+#[derive(Clone, Debug)]
+pub struct ProcessedTranscription {
+    pub final_text: String,
+    pub post_processed_text: Option<String>,
+    pub post_process_prompt: Option<String>,
+}
 
 async fn maybe_post_process_transcription(
     settings: &AppSettings,
@@ -180,12 +187,11 @@ async fn maybe_post_process_with_anamedi(
     // Derive schema / instructions from the selected prompt:
     // - If the prompt is valid JSON, treat it as the schema and omit instructions.
     // - Otherwise, use a built-in SOAP-style schema and pass the prompt as instructions.
-    let (schema, instructions): (String, Option<String>) = if serde_json::from_str::<serde_json::Value>(prompt_text)
-        .is_ok()
-    {
-        (prompt_text.to_string(), None)
-    } else {
-        let default_schema = r#"{
+    let (schema, instructions): (String, Option<String>) =
+        if serde_json::from_str::<serde_json::Value>(prompt_text).is_ok() {
+            (prompt_text.to_string(), None)
+        } else {
+            let default_schema = r#"{
   "type": "object",
   "properties": {
     "summary": {
@@ -206,8 +212,8 @@ async fn maybe_post_process_with_anamedi(
   },
   "required": ["summary"]
 }"#;
-        (default_schema.to_string(), Some(prompt_text.to_string()))
-    };
+            (default_schema.to_string(), Some(prompt_text.to_string()))
+        };
 
     // Map language if possible, otherwise let Anamedi auto-detect.
     let language_code = map_language_to_iso_639_3(&settings.selected_language);
@@ -265,10 +271,7 @@ async fn maybe_post_process_with_anamedi(
                 match serde_json::to_string_pretty(&response.structured_data) {
                     Ok(text) => Some(text),
                     Err(e) => {
-                        error!(
-                            "Failed to serialize Anamedi structuredData to JSON: {}",
-                            e
-                        );
+                        error!("Failed to serialize Anamedi structuredData to JSON: {}", e);
                         None
                     }
                 }
@@ -325,6 +328,93 @@ async fn maybe_convert_chinese_variant(
             error!("Failed to initialize OpenCC converter: {}. Falling back to original transcription.", e);
             None
         }
+    }
+}
+
+fn should_show_structuring_overlay(settings: &AppSettings) -> bool {
+    if settings.selected_language == "zh-Hans" || settings.selected_language == "zh-Hant" {
+        return true;
+    }
+
+    if !settings.post_process_enabled {
+        return false;
+    }
+
+    let Some(provider) = settings.active_post_process_provider() else {
+        return false;
+    };
+
+    if provider.id != "anamedi" {
+        let model = settings
+            .post_process_models
+            .get(&provider.id)
+            .map(String::as_str)
+            .unwrap_or("");
+        if model.trim().is_empty() {
+            return false;
+        }
+    }
+
+    let Some(prompt_id) = &settings.post_process_selected_prompt_id else {
+        return false;
+    };
+
+    settings
+        .post_process_prompts
+        .iter()
+        .find(|prompt| &prompt.id == prompt_id)
+        .map(|prompt| !prompt.prompt.trim().is_empty())
+        .unwrap_or(false)
+}
+
+pub async fn process_transcription_result(
+    settings: &AppSettings,
+    transcription: &str,
+    audio_samples: &[f32],
+) -> ProcessedTranscription {
+    let mut final_text = transcription.to_string();
+    let mut post_processed_text: Option<String> = None;
+    let mut post_process_prompt: Option<String> = None;
+
+    if transcription.is_empty() {
+        return ProcessedTranscription {
+            final_text,
+            post_processed_text,
+            post_process_prompt,
+        };
+    }
+
+    if let Some(converted_text) = maybe_convert_chinese_variant(settings, transcription).await {
+        final_text = converted_text;
+    }
+
+    if let Some(processed_text) =
+        maybe_post_process_transcription(settings, &final_text, audio_samples).await
+    {
+        if processed_text.trim().is_empty() {
+            debug!("Post-processing returned empty output; keeping transcription result");
+        } else {
+            post_processed_text = Some(processed_text.clone());
+            final_text = processed_text;
+
+            if let Some(prompt_id) = &settings.post_process_selected_prompt_id {
+                if let Some(prompt) = settings
+                    .post_process_prompts
+                    .iter()
+                    .find(|p| &p.id == prompt_id)
+                {
+                    post_process_prompt = Some(prompt.prompt.clone());
+                }
+            }
+        }
+    } else if final_text != transcription {
+        post_processed_text = Some(final_text.clone());
+    }
+
+    ProcessedTranscription {
+        final_text,
+        post_processed_text,
+        post_process_prompt,
     }
 }
 
@@ -429,16 +519,23 @@ impl ShortcutAction for TranscribeAction {
             );
 
             let stop_recording_time = Instant::now();
-            if let Some(samples) = rm.stop_recording(&binding_id) {
+            if let Some(recording) = rm.stop_recording(&binding_id) {
                 debug!(
                     "Recording stopped and samples retrieved in {:?}, sample count: {}",
                     stop_recording_time.elapsed(),
-                    samples.len()
+                    recording.samples.len()
                 );
 
+                let history_entry_id = match hm.save_recording(&recording.samples).await {
+                    Ok(entry_id) => Some(entry_id),
+                    Err(err) => {
+                        error!("Failed to save recording before transcription: {}", err);
+                        None
+                    }
+                };
                 let transcription_time = Instant::now();
-                let samples_clone = samples.clone(); // Clone for history saving
-                match tm.transcribe(samples) {
+                let post_process_samples = recording.samples.clone();
+                match tm.transcribe(&recording) {
                     Ok(transcription) => {
                         debug!(
                             "Transcription completed in {:?}: '{}'",
@@ -447,67 +544,35 @@ impl ShortcutAction for TranscribeAction {
                         );
                         if !transcription.is_empty() {
                             let settings = get_settings(&ah);
-                            let mut final_text = transcription.clone();
-                            let mut post_processed_text: Option<String> = None;
-                            let mut post_process_prompt: Option<String> = None;
-
-                            // First, check if Chinese variant conversion is needed
-                            if let Some(converted_text) =
-                                maybe_convert_chinese_variant(&settings, &transcription).await
-                            {
-                                final_text = converted_text;
+                            if should_show_structuring_overlay(&settings) {
+                                show_structuring_overlay(&ah);
                             }
+                            let processed = process_transcription_result(
+                                &settings,
+                                &transcription,
+                                &post_process_samples,
+                            )
+                            .await;
 
-                            // Then apply regular post-processing if enabled
-                            // Uses final_text which may already have Chinese conversion applied
-                            if let Some(processed_text) =
-                                maybe_post_process_transcription(
-                                    &settings,
-                                    &final_text,
-                                    &samples_clone,
-                                )
-                                .await
-                            {
-                                post_processed_text = Some(processed_text.clone());
-                                final_text = processed_text;
-
-                                // Get the prompt that was used
-                                if let Some(prompt_id) = &settings.post_process_selected_prompt_id {
-                                    if let Some(prompt) = settings
-                                        .post_process_prompts
-                                        .iter()
-                                        .find(|p| &p.id == prompt_id)
-                                    {
-                                        post_process_prompt = Some(prompt.prompt.clone());
-                                    }
-                                }
-                            } else if final_text != transcription {
-                                // Chinese conversion was applied but no LLM post-processing
-                                post_processed_text = Some(final_text.clone());
-                            }
-
-                            // Save to history with post-processed text and prompt
-                            let hm_clone = Arc::clone(&hm);
-                            let transcription_for_history = transcription.clone();
-                            tauri::async_runtime::spawn(async move {
-                                if let Err(e) = hm_clone
-                                    .save_transcription(
-                                        samples_clone,
-                                        transcription_for_history,
-                                        post_processed_text,
-                                        post_process_prompt,
+                            if let Some(entry_id) = history_entry_id {
+                                if let Err(err) = hm
+                                    .complete_transcription(
+                                        entry_id,
+                                        transcription.clone(),
+                                        processed.post_processed_text.clone(),
+                                        processed.post_process_prompt.clone(),
                                     )
                                     .await
                                 {
-                                    error!("Failed to save transcription to history: {}", e);
+                                    error!("Failed to complete transcription in history: {}", err);
                                 }
-                            });
+                            }
 
                             // Paste the final text (either processed or original)
                             let ah_clone = ah.clone();
                             let paste_time = Instant::now();
                             ah.run_on_main_thread(move || {
-                                match utils::paste(final_text, ah_clone.clone()) {
+                                match utils::paste(processed.final_text, ah_clone.clone()) {
                                     Ok(()) => debug!(
                                         "Text pasted successfully in {:?}",
                                         paste_time.elapsed()
@@ -524,12 +589,34 @@ impl ShortcutAction for TranscribeAction {
                                 change_tray_icon(&ah, TrayIconState::Idle);
                             });
                         } else {
+                            debug!("Transcription completed with empty output");
+                            if let Some(entry_id) = history_entry_id {
+                                if let Err(err) = hm
+                                    .fail_transcription(
+                                        entry_id,
+                                        "No speech detected in recording.".to_string(),
+                                    )
+                                    .await
+                                {
+                                    error!("Failed to mark empty transcription as failed: {}", err);
+                                }
+                            }
                             utils::hide_recording_overlay(&ah);
                             change_tray_icon(&ah, TrayIconState::Idle);
                         }
                     }
                     Err(err) => {
                         debug!("Global Shortcut Transcription error: {}", err);
+                        if let Some(entry_id) = history_entry_id {
+                            if let Err(history_err) =
+                                hm.fail_transcription(entry_id, err.to_string()).await
+                            {
+                                error!(
+                                    "Failed to mark transcription failure in history: {}",
+                                    history_err
+                                );
+                            }
+                        }
                         utils::hide_recording_overlay(&ah);
                         change_tray_icon(&ah, TrayIconState::Idle);
                     }

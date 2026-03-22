@@ -19,9 +19,11 @@ jobs:
           - platform: "macos-26"
             args: "--target aarch64-apple-darwin"
             target: "aarch64-apple-darwin"
+            sign: false
           - platform: "macos-latest"
             args: "--target x86_64-apple-darwin"
             target: "x86_64-apple-darwin"
+            sign: false
           - platform: "ubuntu-22.04"
             args: "--bundles deb"
             target: "x86_64-unknown-linux-gnu"
@@ -34,16 +36,18 @@ jobs:
           - platform: "windows-latest"
             args: ""
             target: "x86_64-pc-windows-msvc"
+            sign: false
           - platform: "windows-11-arm"
             args: "--target aarch64-pc-windows-msvc"
             target: "aarch64-pc-windows-msvc"
+            sign: false
 
     uses: ./.github/workflows/build.yml
     with:
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.args }}
-      sign-binaries: true
+      sign-binaries: ${{ matrix.sign != false }}
       asset-prefix: "handy-pr-${{ inputs.pr_number }}"
       upload-artifacts: true
       is-debug-build: ${{ contains(matrix.args, '--debug') }}

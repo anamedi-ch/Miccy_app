@@ -18,8 +18,50 @@ use crate::audio_toolkit::{
 
 enum Cmd {
     Start,
-    Stop(mpsc::Sender<Vec<f32>>),
+    Stop(mpsc::Sender<RecordedAudio>),
     Shutdown,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct RecordedAudio {
+    pub samples: Vec<f32>,
+    pub speech_segments: Vec<Vec<f32>>,
+}
+
+#[derive(Default)]
+struct SegmentCollector {
+    samples: Vec<f32>,
+    speech_segments: Vec<Vec<f32>>,
+    current_segment: Vec<f32>,
+}
+
+impl SegmentCollector {
+    fn reset(&mut self) {
+        self.samples.clear();
+        self.speech_segments.clear();
+        self.current_segment.clear();
+    }
+
+    fn push_speech(&mut self, samples: &[f32]) {
+        self.samples.extend_from_slice(samples);
+        self.current_segment.extend_from_slice(samples);
+    }
+
+    fn end_segment(&mut self) {
+        if self.current_segment.is_empty() {
+            return;
+        }
+        self.speech_segments
+            .push(std::mem::take(&mut self.current_segment));
+    }
+
+    fn take_recording(&mut self) -> RecordedAudio {
+        self.end_segment();
+        RecordedAudio {
+            samples: std::mem::take(&mut self.samples),
+            speech_segments: std::mem::take(&mut self.speech_segments),
+        }
+    }
 }
 
 pub struct AudioRecorder {
@@ -135,7 +177,7 @@ impl AudioRecorder {
         Ok(())
     }
 
-    pub fn stop(&self) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+    pub fn stop(&self) -> Result<RecordedAudio, Box<dyn std::error::Error>> {
         let (resp_tx, resp_rx) = mpsc::channel();
         if let Some(tx) = &self.cmd_tx {
             tx.send(Cmd::Stop(resp_tx))?;
@@ -252,7 +294,7 @@ fn run_consumer(
         Duration::from_millis(30),
     );
 
-    let mut processed_samples = Vec::<f32>::new();
+    let mut segment_collector = SegmentCollector::default();
     let mut recording = false;
 
     // ---------- spectrum visualisation setup ---------------------------- //
@@ -270,7 +312,7 @@ fn run_consumer(
         samples: &[f32],
         recording: bool,
         vad: &Option<Arc<Mutex<Box<dyn vad::VoiceActivityDetector>>>>,
-        out_buf: &mut Vec<f32>,
+        segment_collector: &mut SegmentCollector,
     ) {
         if !recording {
             return;
@@ -279,11 +321,11 @@ fn run_consumer(
         if let Some(vad_arc) = vad {
             let mut det = vad_arc.lock().unwrap();
             match det.push_frame(samples).unwrap_or(VadFrame::Speech(samples)) {
-                VadFrame::Speech(buf) => out_buf.extend_from_slice(buf),
-                VadFrame::Noise => {}
+                VadFrame::Speech(buf) => segment_collector.push_speech(buf),
+                VadFrame::Noise => segment_collector.end_segment(),
             }
         } else {
-            out_buf.extend_from_slice(samples);
+            segment_collector.push_speech(samples);
         }
     }
 
@@ -302,14 +344,14 @@ fn run_consumer(
 
         // ---------- existing pipeline ------------------------------------ //
         frame_resampler.push(&raw, &mut |frame: &[f32]| {
-            handle_frame(frame, recording, &vad, &mut processed_samples)
+            handle_frame(frame, recording, &vad, &mut segment_collector)
         });
 
         // non-blocking check for a command
         while let Ok(cmd) = cmd_rx.try_recv() {
             match cmd {
                 Cmd::Start => {
-                    processed_samples.clear();
+                    segment_collector.reset();
                     recording = true;
                     visualizer.reset(); // Reset visualization buffer
                     if let Some(v) = &vad {
@@ -321,10 +363,10 @@ fn run_consumer(
 
                     frame_resampler.finish(&mut |frame: &[f32]| {
                         // we still want to process the last few frames
-                        handle_frame(frame, true, &vad, &mut processed_samples)
+                        handle_frame(frame, true, &vad, &mut segment_collector)
                     });
 
-                    let _ = reply_tx.send(std::mem::take(&mut processed_samples));
+                    let _ = reply_tx.send(segment_collector.take_recording());
                 }
                 Cmd::Shutdown => return,
             }

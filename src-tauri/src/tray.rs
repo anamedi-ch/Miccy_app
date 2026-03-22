@@ -201,7 +201,7 @@ pub fn copy_last_transcript(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::last_transcript_text;
-    use crate::managers::history::HistoryEntry;
+    use crate::managers::history::{HistoryEntry, HistoryEntryStatus};
 
     fn build_entry(transcription: &str, post_processed: Option<&str>) -> HistoryEntry {
         HistoryEntry {
@@ -213,6 +213,8 @@ mod tests {
             transcription_text: transcription.to_string(),
             post_processed_text: post_processed.map(|text| text.to_string()),
             post_process_prompt: None,
+            status: HistoryEntryStatus::Completed,
+            transcription_error: None,
         }
     }
 

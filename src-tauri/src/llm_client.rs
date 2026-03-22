@@ -3,16 +3,25 @@ use log::debug;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE, REFERER, USER_AGENT};
 use serde::{Deserialize, Serialize};
 
+const DEFAULT_OLLAMA_NUM_CTX: u32 = 16_384;
+
 #[derive(Debug, Serialize)]
 struct ChatMessage {
     role: String,
     content: String,
 }
 
+#[derive(Debug, Serialize, PartialEq, Eq)]
+struct ChatCompletionOptions {
+    num_ctx: u32,
+}
+
 #[derive(Debug, Serialize)]
 struct ChatCompletionRequest {
     model: String,
     messages: Vec<ChatMessage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    options: Option<ChatCompletionOptions>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -76,6 +85,37 @@ fn create_client(provider: &PostProcessProvider, api_key: &str) -> Result<reqwes
         .map_err(|e| format!("Failed to build HTTP client: {}", e))
 }
 
+fn uses_ollama_chat_options(provider: &PostProcessProvider) -> bool {
+    if provider.id != "custom" {
+        return false;
+    }
+
+    let Ok(url) = reqwest::Url::parse(provider.base_url.trim()) else {
+        return false;
+    };
+
+    matches!(url.port_or_known_default(), Some(11434))
+}
+
+fn build_chat_completion_request(model: &str, prompt: String, provider: &PostProcessProvider) -> ChatCompletionRequest {
+    let options = if uses_ollama_chat_options(provider) {
+        Some(ChatCompletionOptions {
+            num_ctx: DEFAULT_OLLAMA_NUM_CTX,
+        })
+    } else {
+        None
+    };
+
+    ChatCompletionRequest {
+        model: model.to_string(),
+        messages: vec![ChatMessage {
+            role: "user".to_string(),
+            content: prompt,
+        }],
+        options,
+    }
+}
+
 /// Send a chat completion request to an OpenAI-compatible API
 /// Returns Ok(Some(content)) on success, Ok(None) if response has no content,
 /// or Err on actual errors (HTTP, parsing, etc.)
@@ -91,14 +131,7 @@ pub async fn send_chat_completion(
     debug!("Sending chat completion request to: {}", url);
 
     let client = create_client(provider, &api_key)?;
-
-    let request_body = ChatCompletionRequest {
-        model: model.to_string(),
-        messages: vec![ChatMessage {
-            role: "user".to_string(),
-            content: prompt,
-        }],
-    };
+    let request_body = build_chat_completion_request(model, prompt, provider);
 
     let response = client
         .post(&url)
@@ -188,4 +221,53 @@ pub async fn fetch_models(
     }
 
     Ok(models)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{build_chat_completion_request, uses_ollama_chat_options, DEFAULT_OLLAMA_NUM_CTX};
+    use crate::settings::PostProcessProvider;
+
+    fn build_provider(id: &str, base_url: &str) -> PostProcessProvider {
+        PostProcessProvider {
+            id: id.to_string(),
+            label: "Provider".to_string(),
+            base_url: base_url.to_string(),
+            allow_base_url_edit: true,
+            models_endpoint: Some("/models".to_string()),
+        }
+    }
+
+    #[test]
+    fn detects_default_ollama_openai_endpoint() {
+        let provider = build_provider("custom", "http://localhost:11434/v1");
+
+        assert!(uses_ollama_chat_options(&provider));
+    }
+
+    #[test]
+    fn skips_ollama_options_for_non_ollama_provider() {
+        let provider = build_provider("custom", "https://api.openai.com/v1");
+
+        assert!(!uses_ollama_chat_options(&provider));
+    }
+
+    #[test]
+    fn includes_num_ctx_for_ollama_requests() {
+        let provider = build_provider("custom", "http://127.0.0.1:11434/v1");
+        let request = build_chat_completion_request("qwen2.5:14b", "hello".to_string(), &provider);
+
+        assert_eq!(
+            request.options.map(|options| options.num_ctx),
+            Some(DEFAULT_OLLAMA_NUM_CTX)
+        );
+    }
+
+    #[test]
+    fn omits_num_ctx_for_non_ollama_requests() {
+        let provider = build_provider("anamedi", "https://app.anamedi.com");
+        let request = build_chat_completion_request("model", "hello".to_string(), &provider);
+
+        assert!(request.options.is_none());
+    }
 }

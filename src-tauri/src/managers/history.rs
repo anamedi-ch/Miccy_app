@@ -1,7 +1,11 @@
 use anyhow::Result;
 use chrono::{DateTime, Local, Utc};
 use log::{debug, error, info};
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{
+    params,
+    types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
+    Connection, OptionalExtension,
+};
 use rusqlite_migration::{Migrations, M};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -31,7 +35,39 @@ static MIGRATIONS: &[M] = &[
     ),
     M::up("ALTER TABLE transcription_history ADD COLUMN post_processed_text TEXT;"),
     M::up("ALTER TABLE transcription_history ADD COLUMN post_process_prompt TEXT;"),
+    M::up("ALTER TABLE transcription_history ADD COLUMN status TEXT NOT NULL DEFAULT 'completed';"),
+    M::up("ALTER TABLE transcription_history ADD COLUMN transcription_error TEXT;"),
 ];
+
+#[derive(Clone, Debug, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum HistoryEntryStatus {
+    Pending,
+    Completed,
+    Failed,
+}
+
+impl ToSql for HistoryEntryStatus {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        let value = match self {
+            HistoryEntryStatus::Pending => "pending",
+            HistoryEntryStatus::Completed => "completed",
+            HistoryEntryStatus::Failed => "failed",
+        };
+        Ok(ToSqlOutput::from(value))
+    }
+}
+
+impl FromSql for HistoryEntryStatus {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value.as_str()? {
+            "pending" => Ok(HistoryEntryStatus::Pending),
+            "completed" => Ok(HistoryEntryStatus::Completed),
+            "failed" => Ok(HistoryEntryStatus::Failed),
+            _ => Err(FromSqlError::InvalidType),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct HistoryEntry {
@@ -43,6 +79,8 @@ pub struct HistoryEntry {
     pub transcription_text: String,
     pub post_processed_text: Option<String>,
     pub post_process_prompt: Option<String>,
+    pub status: HistoryEntryStatus,
+    pub transcription_error: Option<String>,
 }
 
 pub struct HistoryManager {
@@ -176,40 +214,92 @@ impl HistoryManager {
         Ok(Connection::open(&self.db_path)?)
     }
 
-    /// Save a transcription to history (both database and WAV file)
-    pub async fn save_transcription(
+    /// Save the WAV file immediately and create a history entry before transcription.
+    pub async fn save_recording(&self, audio_samples: &[f32]) -> Result<i64> {
+        let now = Utc::now();
+        let timestamp = now.timestamp();
+        let file_name = format!("anamedi-{}.wav", now.timestamp_micros());
+        let title = self.format_timestamp_title(timestamp);
+        let file_path = self.recordings_dir.join(&file_name);
+        save_wav_file(file_path, audio_samples).await?;
+        let entry_id = self.save_to_database(
+            file_name,
+            timestamp,
+            title,
+            String::new(),
+            None,
+            None,
+            HistoryEntryStatus::Pending,
+            None,
+        )?;
+        self.cleanup_old_entries()?;
+        if let Err(e) = self.app_handle.emit("history-updated", ()) {
+            error!("Failed to emit history-updated event: {}", e);
+        }
+        Ok(entry_id)
+    }
+
+    pub async fn mark_transcription_pending(&self, id: i64) -> Result<()> {
+        let conn = self.get_connection()?;
+        conn.execute(
+            "UPDATE transcription_history
+             SET status = ?1, transcription_error = NULL
+             WHERE id = ?2",
+            params![HistoryEntryStatus::Pending, id],
+        )?;
+        debug!("Marked history entry {} as pending", id);
+        if let Err(e) = self.app_handle.emit("history-updated", ()) {
+            error!("Failed to emit history-updated event: {}", e);
+        }
+        Ok(())
+    }
+
+    pub async fn complete_transcription(
         &self,
-        audio_samples: Vec<f32>,
+        id: i64,
         transcription_text: String,
         post_processed_text: Option<String>,
         post_process_prompt: Option<String>,
     ) -> Result<()> {
-        let timestamp = Utc::now().timestamp();
-        let file_name = format!("handy-{}.wav", timestamp);
-        let title = self.format_timestamp_title(timestamp);
-
-        // Save WAV file
-        let file_path = self.recordings_dir.join(&file_name);
-        save_wav_file(file_path, &audio_samples).await?;
-
-        // Save to database
-        self.save_to_database(
-            file_name,
-            timestamp,
-            title,
-            transcription_text,
-            post_processed_text,
-            post_process_prompt,
+        let conn = self.get_connection()?;
+        conn.execute(
+            "UPDATE transcription_history
+             SET transcription_text = ?1,
+                 post_processed_text = ?2,
+                 post_process_prompt = ?3,
+                 status = ?4,
+                 transcription_error = NULL
+             WHERE id = ?5",
+            params![
+                transcription_text,
+                post_processed_text,
+                post_process_prompt,
+                HistoryEntryStatus::Completed,
+                id,
+            ],
         )?;
-
-        // Clean up old entries
-        self.cleanup_old_entries()?;
-
-        // Emit history updated event
+        debug!("Completed transcription for history entry {}", id);
         if let Err(e) = self.app_handle.emit("history-updated", ()) {
             error!("Failed to emit history-updated event: {}", e);
         }
+        Ok(())
+    }
 
+    pub async fn fail_transcription(&self, id: i64, transcription_error: String) -> Result<()> {
+        let conn = self.get_connection()?;
+        conn.execute(
+            "UPDATE transcription_history
+             SET status = ?1,
+                 transcription_error = ?2,
+                 post_processed_text = NULL,
+                 post_process_prompt = NULL
+             WHERE id = ?3",
+            params![HistoryEntryStatus::Failed, transcription_error, id],
+        )?;
+        debug!("Marked transcription as failed for history entry {}", id);
+        if let Err(e) = self.app_handle.emit("history-updated", ()) {
+            error!("Failed to emit history-updated event: {}", e);
+        }
         Ok(())
     }
 
@@ -221,15 +311,16 @@ impl HistoryManager {
         transcription_text: String,
         post_processed_text: Option<String>,
         post_process_prompt: Option<String>,
-    ) -> Result<()> {
+        status: HistoryEntryStatus,
+        transcription_error: Option<String>,
+    ) -> Result<i64> {
         let conn = self.get_connection()?;
         conn.execute(
-            "INSERT INTO transcription_history (file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            params![file_name, timestamp, false, title, transcription_text, post_processed_text, post_process_prompt],
+            "INSERT INTO transcription_history (file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, status, transcription_error) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![file_name, timestamp, false, title, transcription_text, post_processed_text, post_process_prompt, status, transcription_error],
         )?;
-
         debug!("Saved transcription to database");
-        Ok(())
+        Ok(conn.last_insert_rowid())
     }
 
     pub fn cleanup_old_entries(&self) -> Result<()> {
@@ -287,10 +378,10 @@ impl HistoryManager {
 
         // Get all entries that are not saved, ordered by timestamp desc
         let mut stmt = conn.prepare(
-            "SELECT id, file_name FROM transcription_history WHERE saved = 0 ORDER BY timestamp DESC"
+            "SELECT id, file_name FROM transcription_history WHERE saved = 0 AND status = ?1 ORDER BY timestamp DESC"
         )?;
 
-        let rows = stmt.query_map([], |row| {
+        let rows = stmt.query_map(params![HistoryEntryStatus::Completed], |row| {
             Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?))
         })?;
 
@@ -328,12 +419,13 @@ impl HistoryManager {
 
         // Get all unsaved entries older than the cutoff timestamp
         let mut stmt = conn.prepare(
-            "SELECT id, file_name FROM transcription_history WHERE saved = 0 AND timestamp < ?1",
+            "SELECT id, file_name FROM transcription_history WHERE saved = 0 AND status = ?1 AND timestamp < ?2",
         )?;
 
-        let rows = stmt.query_map(params![cutoff_timestamp], |row| {
-            Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?))
-        })?;
+        let rows = stmt.query_map(
+            params![HistoryEntryStatus::Completed, cutoff_timestamp],
+            |row| Ok((row.get::<_, i64>("id")?, row.get::<_, String>("file_name")?)),
+        )?;
 
         let mut entries_to_delete: Vec<(i64, String)> = Vec::new();
         for row in rows {
@@ -355,7 +447,7 @@ impl HistoryManager {
     pub async fn get_history_entries(&self) -> Result<Vec<HistoryEntry>> {
         let conn = self.get_connection()?;
         let mut stmt = conn.prepare(
-            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt FROM transcription_history ORDER BY timestamp DESC"
+            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, status, transcription_error FROM transcription_history ORDER BY timestamp DESC"
         )?;
 
         let rows = stmt.query_map([], |row| {
@@ -368,6 +460,8 @@ impl HistoryManager {
                 transcription_text: row.get("transcription_text")?,
                 post_processed_text: row.get("post_processed_text")?,
                 post_process_prompt: row.get("post_process_prompt")?,
+                status: row.get("status")?,
+                transcription_error: row.get("transcription_error")?,
             })
         })?;
 
@@ -386,14 +480,16 @@ impl HistoryManager {
 
     fn get_latest_entry_with_conn(conn: &Connection) -> Result<Option<HistoryEntry>> {
         let mut stmt = conn.prepare(
-            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt
+            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, status, transcription_error
              FROM transcription_history
+             WHERE status = ?1
+               AND TRIM(COALESCE(NULLIF(post_processed_text, ''), transcription_text)) != ''
              ORDER BY timestamp DESC
              LIMIT 1",
         )?;
 
         let entry = stmt
-            .query_row([], |row| {
+            .query_row(params![HistoryEntryStatus::Completed], |row| {
                 Ok(HistoryEntry {
                     id: row.get("id")?,
                     file_name: row.get("file_name")?,
@@ -403,6 +499,8 @@ impl HistoryManager {
                     transcription_text: row.get("transcription_text")?,
                     post_processed_text: row.get("post_processed_text")?,
                     post_process_prompt: row.get("post_process_prompt")?,
+                    status: row.get("status")?,
+                    transcription_error: row.get("transcription_error")?,
                 })
             })
             .optional()?;
@@ -444,7 +542,7 @@ impl HistoryManager {
     pub async fn get_entry_by_id(&self, id: i64) -> Result<Option<HistoryEntry>> {
         let conn = self.get_connection()?;
         let mut stmt = conn.prepare(
-            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt
+            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, status, transcription_error
              FROM transcription_history WHERE id = ?1",
         )?;
 
@@ -459,6 +557,8 @@ impl HistoryManager {
                     transcription_text: row.get("transcription_text")?,
                     post_processed_text: row.get("post_processed_text")?,
                     post_process_prompt: row.get("post_process_prompt")?,
+                    status: row.get("status")?,
+                    transcription_error: row.get("transcription_error")?,
                 })
             })
             .optional()?;
@@ -524,24 +624,34 @@ mod tests {
                 title TEXT NOT NULL,
                 transcription_text TEXT NOT NULL,
                 post_processed_text TEXT,
-                post_process_prompt TEXT
+                post_process_prompt TEXT,
+                status TEXT NOT NULL DEFAULT 'completed',
+                transcription_error TEXT
             );",
         )
         .expect("create transcription_history table");
         conn
     }
 
-    fn insert_entry(conn: &Connection, timestamp: i64, text: &str, post_processed: Option<&str>) {
+    fn insert_entry(
+        conn: &Connection,
+        timestamp: i64,
+        text: &str,
+        post_processed: Option<&str>,
+        status: HistoryEntryStatus,
+    ) {
         conn.execute(
-            "INSERT INTO transcription_history (file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO transcription_history (file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, status, transcription_error)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
-                format!("handy-{}.wav", timestamp),
+                format!("anamedi-{}.wav", timestamp),
                 timestamp,
                 false,
                 format!("Recording {}", timestamp),
                 text,
                 post_processed,
+                Option::<String>::None,
+                status,
                 Option::<String>::None
             ],
         )
@@ -558,8 +668,14 @@ mod tests {
     #[test]
     fn get_latest_entry_returns_newest_entry() {
         let conn = setup_conn();
-        insert_entry(&conn, 100, "first", None);
-        insert_entry(&conn, 200, "second", Some("processed"));
+        insert_entry(&conn, 100, "first", None, HistoryEntryStatus::Completed);
+        insert_entry(
+            &conn,
+            200,
+            "second",
+            Some("processed"),
+            HistoryEntryStatus::Completed,
+        );
 
         let entry = HistoryManager::get_latest_entry_with_conn(&conn)
             .expect("fetch latest entry")
@@ -568,5 +684,34 @@ mod tests {
         assert_eq!(entry.timestamp, 200);
         assert_eq!(entry.transcription_text, "second");
         assert_eq!(entry.post_processed_text.as_deref(), Some("processed"));
+    }
+
+    #[test]
+    fn get_latest_entry_skips_empty_transcriptions() {
+        let conn = setup_conn();
+        insert_entry(&conn, 100, "first", None, HistoryEntryStatus::Completed);
+        insert_entry(&conn, 200, "", None, HistoryEntryStatus::Completed);
+
+        let entry = HistoryManager::get_latest_entry_with_conn(&conn)
+            .expect("fetch latest entry")
+            .expect("entry exists");
+
+        assert_eq!(entry.timestamp, 100);
+        assert_eq!(entry.transcription_text, "first");
+    }
+
+    #[test]
+    fn get_latest_entry_skips_non_completed_entries() {
+        let conn = setup_conn();
+        insert_entry(&conn, 100, "completed", None, HistoryEntryStatus::Completed);
+        insert_entry(&conn, 200, "failed", None, HistoryEntryStatus::Failed);
+        insert_entry(&conn, 300, "pending", None, HistoryEntryStatus::Pending);
+
+        let entry = HistoryManager::get_latest_entry_with_conn(&conn)
+            .expect("fetch latest entry")
+            .expect("entry exists");
+
+        assert_eq!(entry.timestamp, 100);
+        assert_eq!(entry.status, HistoryEntryStatus::Completed);
     }
 }

@@ -1,9 +1,9 @@
 mod actions;
+mod anamedi_client;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 mod audio_feedback;
 pub mod audio_toolkit;
-mod anamedi_client;
 mod clipboard;
 mod commands;
 mod helpers;
@@ -321,6 +321,7 @@ pub fn run() {
         commands::history::toggle_history_entry_saved,
         commands::history::get_audio_file_path,
         commands::history::delete_history_entry,
+        commands::history::retry_history_entry_transcription,
         commands::history::update_history_limit,
         commands::history::update_recording_retention_period,
         helpers::clamshell::is_laptop,

@@ -310,7 +310,14 @@
       "save": "Save transcription",
       "unsave": "Remove from saved",
       "delete": "Delete entry",
-      "deleteError": "Failed to delete entry. Please try again."
+      "deleteError": "Failed to delete entry. Please try again.",
+      "retry": "Retry transcription",
+      "retryError": "Failed to retry transcription. Please try again.",
+      "status": {
+        "pending": "Transcribing",
+        "completed": "Completed",
+        "failed": "Failed"
+      }
     },
     "debug": {
       "title": "Debug",
@@ -468,6 +475,7 @@
     "description": "Change the language of the Anamedi Local interface"
   },
   "overlay": {
-    "transcribing": "Transcribing..."
+    "transcribing": "Transcribing...",
+    "structuring": "Structuring..."
   }
 }

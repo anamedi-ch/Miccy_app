@@ -2,6 +2,7 @@
 // This file is copied over transcription.rs during CI tests.
 // Existing tests don't exercise transcription, so this is safe.
 
+use crate::audio_toolkit::RecordedAudio;
 use crate::managers::model::ModelManager;
 use anyhow::Result;
 use serde::Serialize;
@@ -49,7 +50,7 @@ impl TranscriptionManager {
         None
     }
 
-    pub fn transcribe(&self, _audio: Vec<f32>) -> Result<String> {
+    pub fn transcribe(&self, _recording: &RecordedAudio) -> Result<String> {
         Ok(String::new())
     }
 }

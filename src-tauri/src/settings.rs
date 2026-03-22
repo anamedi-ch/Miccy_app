@@ -433,6 +433,46 @@ fn default_post_process_models() -> HashMap<String, String> {
 fn default_post_process_prompts() -> Vec<LLMPrompt> {
     vec![
         LLMPrompt {
+            id: "transcript_improve".to_string(),
+            name: "Transkript verbessern".to_string(),
+            description: Some("Verbessert ein Transkript in standardsprachlichem Deutsch ohne inhaltliche Änderungen".to_string()),
+            prompt: r#"Das Folgende ist ein automatisch transkribiertes Gespräch. Überarbeiten Sie das Transkript in standardsprachlichem Deutsch.
+
+Transkript:
+${output}
+
+WICHTIGE REGELN:
+- Erhalten Sie den ursprünglichen Sinn vollständig.
+- Korrigieren Sie Grammatik, Rechtschreibung, Zeichensetzung und offensichtliche Transkriptionsfehler.
+- Formulieren Sie Schweizerdeutsch, Dialekt, Umgangssprache und unvollständige Sätze in klares Standarddeutsch um, ohne neue Informationen hinzuzufügen.
+- Entfernen Sie Füllwörter, doppelte Wörter, offensichtliche Versprecher und überflüssige Wiederholungen nur dann, wenn der Inhalt dadurch klarer wird.
+- Verdichten Sie den Inhalt NICHT zu einer Zusammenfassung und ändern Sie NICHT die fachliche Aussage.
+- Verwenden Sie keine Überschriften, keine Bulletpoints, kein JSON und keine zusätzlichen Erklärungen.
+
+Geben Sie ausschließlich das verbesserte Transkript zurück."#
+                .to_string(),
+        },
+        LLMPrompt {
+            id: "transcript_summarize".to_string(),
+            name: "Transkript zusammenfassen (Stichpunkte)".to_string(),
+            description: Some("Fasst ein Transkript in klaren deutschen Stichpunkten zusammen".to_string()),
+            prompt: r#"Das Folgende ist ein automatisch transkribiertes Gespräch. Fassen Sie das Transkript auf Deutsch in prägnanten Stichpunkten zusammen.
+
+Transkript:
+${output}
+
+WICHTIGE REGELN:
+- Verwenden Sie ausschließlich Informationen aus dem Transkript.
+- Schreiben Sie in klarem, standardsprachlichem Deutsch.
+- Geben Sie die wichtigsten Inhalte, Entscheidungen, Befunde, nächsten Schritte und offenen Punkte wieder.
+- Verwenden Sie kurze, aussagekräftige Bulletpoints.
+- Erfinden Sie keine Informationen und lassen Sie Unsicherheiten als solche erkennbar.
+- Geben Sie keine Einleitung, keine Überschrift, kein JSON und keine zusätzlichen Erklärungen aus.
+
+Geben Sie ausschließlich die Zusammenfassung als Stichpunkte zurück."#
+                .to_string(),
+        },
+        LLMPrompt {
             id: "soap".to_string(),
             name: "SOAP (DE)".to_string(),
             description: Some("Standard medical documentation (Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere)".to_string()),
@@ -625,6 +665,67 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     if let Some(existing) = settings
         .post_process_prompts
         .iter_mut()
+        .find(|prompt| {
+            prompt.id == "improve_transcription"
+                || prompt.id == "improve_transcript"
+                || prompt.name == "Improve Transcription"
+        })
+    {
+        if let Some(new_prompt) = default_prompts
+            .iter()
+            .find(|prompt| prompt.id == "transcript_improve")
+        {
+            existing.id = new_prompt.id.clone();
+            existing.name = new_prompt.name.clone();
+            existing.description = new_prompt.description.clone();
+            existing.prompt = new_prompt.prompt.clone();
+            if matches!(
+                settings.post_process_selected_prompt_id.as_deref(),
+                Some("improve_transcription" | "improve_transcript")
+            ) {
+                settings.post_process_selected_prompt_id =
+                    Some("transcript_improve".to_string());
+            }
+            changed = true;
+        }
+    }
+
+    if let Some(existing) = settings
+        .post_process_prompts
+        .iter_mut()
+        .find(|prompt| {
+            prompt.id == "summarize_transcript"
+                || prompt.id == "summarize_transcript_bullets"
+                || prompt.id == "transcript_summary"
+                || prompt.name == "Summarize Transcript (Bullets)"
+        })
+    {
+        if let Some(new_prompt) = default_prompts
+            .iter()
+            .find(|prompt| prompt.id == "transcript_summarize")
+        {
+            existing.id = new_prompt.id.clone();
+            existing.name = new_prompt.name.clone();
+            existing.description = new_prompt.description.clone();
+            existing.prompt = new_prompt.prompt.clone();
+            if matches!(
+                settings.post_process_selected_prompt_id.as_deref(),
+                Some(
+                    "summarize_transcript"
+                        | "summarize_transcript_bullets"
+                        | "transcript_summary"
+                )
+            ) {
+                settings.post_process_selected_prompt_id =
+                    Some("transcript_summarize".to_string());
+            }
+            changed = true;
+        }
+    }
+
+    if let Some(existing) = settings
+        .post_process_prompts
+        .iter_mut()
         .find(|prompt| prompt.id == "soap_json_de")
     {
         if let Some(new_soap_prompt) = default_prompts.iter().find(|prompt| prompt.id == "soap")
@@ -640,15 +741,19 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         }
     }
 
-    // Remove duplicate SOAP (DE) prompts - keep only the first occurrence of id "soap"
+    // Remove duplicate built-in prompts - keep only the first occurrence.
     let original_len = settings.post_process_prompts.len();
-    let mut seen_soap = false;
+    let mut seen_builtin_prompt_ids: std::collections::HashSet<String> =
+        std::collections::HashSet::new();
     settings.post_process_prompts.retain(|p| {
-        if p.id == "soap" {
-            if seen_soap {
+        if matches!(
+            p.id.as_str(),
+            "transcript_improve" | "transcript_summarize" | "soap"
+        ) {
+            if seen_builtin_prompt_ids.contains(&p.id) {
                 false
             } else {
-                seen_soap = true;
+                seen_builtin_prompt_ids.insert(p.id.clone());
                 true
             }
         } else {
@@ -671,6 +776,27 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
             settings.post_process_prompts.push(default_prompt.clone());
             changed = true;
         }
+    }
+
+    let prompt_order_before = settings
+        .post_process_prompts
+        .iter()
+        .map(|prompt| prompt.id.clone())
+        .collect::<Vec<String>>();
+    settings.post_process_prompts.sort_by_key(|prompt| {
+        match prompt.id.as_str() {
+            "transcript_improve" => 0,
+            "transcript_summarize" => 1,
+            _ => 2,
+        }
+    });
+    let prompt_order_after = settings
+        .post_process_prompts
+        .iter()
+        .map(|prompt| prompt.id.clone())
+        .collect::<Vec<String>>();
+    if prompt_order_before != prompt_order_after {
+        changed = true;
     }
 
     changed
