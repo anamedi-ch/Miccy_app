@@ -102,6 +102,16 @@ pub struct PostProcessProvider {
     pub models_endpoint: Option<String>,
 }
 
+/// CPU/GPU trade-off for the bundled local summarization runtime (`llama-server`).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum LocalLlmPerformancePreset {
+    Low,
+    #[default]
+    Default,
+    High,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum OverlayPosition {
@@ -304,6 +314,28 @@ pub struct AppSettings {
     pub post_process_prompts: Vec<LLMPrompt>,
     #[serde(default)]
     pub post_process_selected_prompt_id: Option<String>,
+    /// Context window for Ollama post-processing (`num_ctx`). Clamped to
+    /// [`OLLAMA_POST_PROCESS_NUM_CTX_MIN`], [`OLLAMA_POST_PROCESS_NUM_CTX_MAX`].
+    #[serde(default = "default_post_process_ollama_num_ctx")]
+    pub post_process_ollama_num_ctx: u32,
+    /// Max new tokens from Ollama (`num_predict`). `0` = omit (model default, no cap).
+    #[serde(default = "default_post_process_ollama_num_predict")]
+    pub post_process_ollama_num_predict: u32,
+    #[serde(default)]
+    pub post_process_local_performance: LocalLlmPerformancePreset,
+    /// Context window (`-c`) for bundled `llama-server`. Clamped to
+    /// [`LOCAL_POST_PROCESS_CTX_MIN`], [`LOCAL_POST_PROCESS_CTX_MAX`].
+    #[serde(default = "default_post_process_local_ctx")]
+    pub post_process_local_ctx: u32,
+    /// Max completion tokens for local server (`max_tokens`). `0` = omit (uncapped).
+    #[serde(default = "default_post_process_local_max_tokens")]
+    pub post_process_local_max_tokens: u32,
+    /// Sampling temperature for local post-processing (OpenAI `temperature`).
+    #[serde(default = "default_post_process_local_temperature")]
+    pub post_process_local_temperature: f64,
+    /// Minutes after a completed local post-process before stopping `llama-server`. `0` = keep running.
+    #[serde(default = "default_post_process_local_idle_shutdown_minutes")]
+    pub post_process_local_idle_shutdown_minutes: u32,
     #[serde(default)]
     pub mute_while_recording: bool,
     #[serde(default)]
@@ -402,6 +434,13 @@ fn default_post_process_provider_id() -> String {
 fn default_post_process_providers() -> Vec<PostProcessProvider> {
     vec![
         PostProcessProvider {
+            id: "local_private".to_string(),
+            label: "This computer (private)".to_string(),
+            base_url: "http://127.0.0.1:1/v1".to_string(),
+            allow_base_url_edit: false,
+            models_endpoint: None,
+        },
+        PostProcessProvider {
             id: "custom".to_string(),
             label: "Custom Local".to_string(),
             base_url: "http://localhost:11434/v1".to_string(),
@@ -430,150 +469,175 @@ fn default_post_process_models() -> HashMap<String, String> {
     HashMap::new()
 }
 
+/// Minimum `num_ctx` for Ollama structuring (fits prompt + short transcript).
+pub const OLLAMA_POST_PROCESS_NUM_CTX_MIN: u32 = 2048;
+/// Maximum `num_ctx` sent to Ollama for post-processing.
+pub const OLLAMA_POST_PROCESS_NUM_CTX_MAX: u32 = 131_072;
+/// Default `num_ctx`: ~15–20 min German dictation + instructions without truncation.
+pub const DEFAULT_POST_PROCESS_OLLAMA_NUM_CTX: u32 = 12_288;
+/// Upper bound when `num_predict` is set (non-zero).
+pub const OLLAMA_POST_PROCESS_NUM_PREDICT_MAX: u32 = 131_072;
+
+/// Minimum context (`-c`) for bundled `llama-server` post-processing.
+pub const LOCAL_POST_PROCESS_CTX_MIN: u32 = 2048;
+/// Maximum context for local post-processing.
+pub const LOCAL_POST_PROCESS_CTX_MAX: u32 = 131_072;
+/// Default local context: matches Ollama default intent (~15–20 min dictation + prompt).
+pub const DEFAULT_POST_PROCESS_LOCAL_CTX: u32 = 12_288;
+
+pub const LOCAL_POST_PROCESS_TEMPERATURE_MIN: f64 = 0.0;
+pub const LOCAL_POST_PROCESS_TEMPERATURE_MAX: f64 = 2.0;
+/// Slightly conservative default for clinical structuring.
+pub const DEFAULT_POST_PROCESS_LOCAL_TEMPERATURE: f64 = 0.35;
+
+/// Stop `llama-server` after this many minutes with no completed post-process. `0` = never.
+pub const LOCAL_POST_PROCESS_IDLE_SHUTDOWN_MAX_MINUTES: u32 = 720;
+pub const DEFAULT_POST_PROCESS_LOCAL_IDLE_SHUTDOWN_MINUTES: u32 = 15;
+
+fn default_post_process_ollama_num_ctx() -> u32 {
+    DEFAULT_POST_PROCESS_OLLAMA_NUM_CTX
+}
+
+fn default_post_process_ollama_num_predict() -> u32 {
+    0
+}
+
+fn default_post_process_local_ctx() -> u32 {
+    DEFAULT_POST_PROCESS_LOCAL_CTX
+}
+
+fn default_post_process_local_max_tokens() -> u32 {
+    0
+}
+
+fn default_post_process_local_temperature() -> f64 {
+    DEFAULT_POST_PROCESS_LOCAL_TEMPERATURE
+}
+
+fn default_post_process_local_idle_shutdown_minutes() -> u32 {
+    DEFAULT_POST_PROCESS_LOCAL_IDLE_SHUTDOWN_MINUTES
+}
+
+/// Clamp stored `num_ctx` to supported range.
+pub fn clamp_ollama_post_process_num_ctx(raw: u32) -> u32 {
+    raw.clamp(
+        OLLAMA_POST_PROCESS_NUM_CTX_MIN,
+        OLLAMA_POST_PROCESS_NUM_CTX_MAX,
+    )
+}
+
+/// `None` means do not send `num_predict` (model default / uncapped generation).
+pub fn normalize_ollama_post_process_num_predict(raw: u32) -> Option<u32> {
+    if raw == 0 {
+        None
+    } else {
+        Some(raw.min(OLLAMA_POST_PROCESS_NUM_PREDICT_MAX))
+    }
+}
+
+/// Clamp local `llama-server` context size.
+pub fn clamp_local_post_process_ctx(raw: u32) -> u32 {
+    raw.clamp(LOCAL_POST_PROCESS_CTX_MIN, LOCAL_POST_PROCESS_CTX_MAX)
+}
+
+/// Clamp local sampling temperature.
+pub fn clamp_local_post_process_temperature(raw: f64) -> f64 {
+    raw.clamp(
+        LOCAL_POST_PROCESS_TEMPERATURE_MIN,
+        LOCAL_POST_PROCESS_TEMPERATURE_MAX,
+    )
+}
+
+/// `None` means omit `max_tokens` (uncapped). Non-zero values are capped.
+pub fn normalize_local_post_process_max_tokens(raw: u32) -> Option<u32> {
+    if raw == 0 {
+        None
+    } else {
+        Some(raw.min(OLLAMA_POST_PROCESS_NUM_PREDICT_MAX))
+    }
+}
+
+pub fn clamp_local_post_process_idle_shutdown_minutes(raw: u32) -> u32 {
+    raw.min(LOCAL_POST_PROCESS_IDLE_SHUTDOWN_MAX_MINUTES)
+}
+
 fn default_post_process_prompts() -> Vec<LLMPrompt> {
     vec![
         LLMPrompt {
             id: "transcript_improve".to_string(),
             name: "Transkript verbessern".to_string(),
             description: Some("Verbessert ein Transkript in standardsprachlichem Deutsch ohne inhaltliche Änderungen".to_string()),
-            prompt: r#"Das Folgende ist ein automatisch transkribiertes Gespräch. Überarbeiten Sie das Transkript in standardsprachlichem Deutsch.
+            prompt: r#"Überarbeiten Sie in klarem Standarddeutsch: Sinn und fachliche Aussage unverändert; Grammatik, Orthographie, Dialekt/Umgangssprache→Standardsprache; offensichtliche Transkriptionsfehler korrigieren. Keine Zusammenfassung, keine Überschriften, kein JSON, kein Kommentar.
 
 Transkript:
-${output}
-
-WICHTIGE REGELN:
-- Erhalten Sie den ursprünglichen Sinn vollständig.
-- Korrigieren Sie Grammatik, Rechtschreibung, Zeichensetzung und offensichtliche Transkriptionsfehler.
-- Formulieren Sie Schweizerdeutsch, Dialekt, Umgangssprache und unvollständige Sätze in klares Standarddeutsch um, ohne neue Informationen hinzuzufügen.
-- Entfernen Sie Füllwörter, doppelte Wörter, offensichtliche Versprecher und überflüssige Wiederholungen nur dann, wenn der Inhalt dadurch klarer wird.
-- Verdichten Sie den Inhalt NICHT zu einer Zusammenfassung und ändern Sie NICHT die fachliche Aussage.
-- Verwenden Sie keine Überschriften, keine Bulletpoints, kein JSON und keine zusätzlichen Erklärungen.
-
-Geben Sie ausschließlich das verbesserte Transkript zurück."#
+${output}"#
                 .to_string(),
         },
         LLMPrompt {
             id: "transcript_summarize".to_string(),
             name: "Transkript zusammenfassen (Stichpunkte)".to_string(),
             description: Some("Fasst ein Transkript in klaren deutschen Stichpunkten zusammen".to_string()),
-            prompt: r#"Das Folgende ist ein automatisch transkribiertes Gespräch. Fassen Sie das Transkript auf Deutsch in prägnanten Stichpunkten zusammen.
+            prompt: r#"Kompakte deutsche Stichpunkte (je Zeile ein "- "). Nur Inhalte aus dem Transkript: Wesentliches, Entscheidungen, Befunde, nächste Schritte, offene Punkte. Keine Einleitung, kein JSON.
 
 Transkript:
-${output}
-
-WICHTIGE REGELN:
-- Verwenden Sie ausschließlich Informationen aus dem Transkript.
-- Schreiben Sie in klarem, standardsprachlichem Deutsch.
-- Geben Sie die wichtigsten Inhalte, Entscheidungen, Befunde, nächsten Schritte und offenen Punkte wieder.
-- Verwenden Sie kurze, aussagekräftige Bulletpoints.
-- Erfinden Sie keine Informationen und lassen Sie Unsicherheiten als solche erkennbar.
-- Geben Sie keine Einleitung, keine Überschrift, kein JSON und keine zusätzlichen Erklärungen aus.
-
-Geben Sie ausschließlich die Zusammenfassung als Stichpunkte zurück."#
+${output}"#
                 .to_string(),
         },
         LLMPrompt {
             id: "soap".to_string(),
             name: "SOAP (DE)".to_string(),
             description: Some("Standard medical documentation (Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere)".to_string()),
-            prompt: r#"Das Folgende ist eine wörtliche Abschrift eines ärztlichen Gesprächs in der hausärztlichen Versorgung. Erstellen Sie daraus eine strukturierte ärztliche Dokumentation im SOAP-Format.
+            prompt: r#"SOAP aus hausärztlichem Gespräch. Genau fünf Abschnitte, Überschrift ohne Doppelpunkt, darunter nur kompakte Zeilen mit "• ". Abschnitte mit Leerzeile trennen: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere.
+
+Nur explizit Genanntes; medizinische Terminologie; sonst "• Keine Angaben". Kein Gesamttitel, kein JSON.
 
 Transkript:
-${output}
-
-Verwenden Sie exakt diese fünf Abschnitte: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere. Jeder Abschnitt beginnt mit seiner Überschrift (ohne Doppelpunkt), gefolgt von Aufzählungspunkten ("• "). Zwischen Abschnitten zwei Zeilenumbrüche ("\n\n").
-
-WICHTIGE REGELN:
-- Verwenden Sie medizinische Terminologie (z. B. "Dyspnoe", "Hypertonus") und typische ärztliche Floskeln ("es imponiert...", "klinisch unauffällig").
-- NUR Befunde und Informationen verwenden, die EXPLIZIT im Transkript erwähnt werden. KEINE Halluzinationen.
-- Wenn für einen Abschnitt keine Informationen vorliegen: "• Keine spezifischen Informationen dokumentiert".
-
-Geben Sie ausschließlich den SOAP-Text zurück, ohne Titel, Action-Items, JSON oder zusätzliche Erklärungen."#
+${output}"#
                 .to_string(),
         },
         LLMPrompt {
             id: "psychology".to_string(),
             name: "Psychology".to_string(),
             description: Some("Psychotherapeutic narrative report (psychopathologischer Befund, Anamnese, Behandlungsplan)".to_string()),
-            prompt: r#"Das Folgende ist eine Abschrift einer Sprachnachricht eines Psychologen oder Psychotherapeuten. Erstellen Sie daraus einen psychologischen Befund im narrativen Format.
+            prompt: r#"Knapper narrativer psychologischer Befund. Nur Abschnitte mit Inhalt; je Abschnitt Überschrift, dann 1–3 kurze Absätze (vollständige Sätze, keine Bullets). Mögliche Überschriften: Psychopathologischer Befund, Grund der Therapie, Anamnese, Arbeit/Beziehungen, Ziele, Behandlungsplan. Nur Transkriptinhalte, keine Wiederholungen, kein JSON.
 
 Transkript:
-${output}
-
-Verwenden Sie einen fließenden, narrativen Schreibstil. Lassen Sie Abschnitte ohne Informationen WEG. Mögliche Abschnitte: Psychopathologischer Befund, Grund der Therapie, Psychiatrische Anamnese, Medizinische Anamnese, Arbeit, Beziehungen und Partnerschaften, Ziele und Erwartungen, Behandlungsplan.
-
-WICHTIGE REGELN:
-- NUR Informationen aus dem Transkript verwenden. KEINE erfundenen Informationen.
-- Vermeiden Sie Wiederholungen von Sätzen oder Phrasen.
-- Jeder Abschnitt in vollständigen Sätzen, keine Aufzählungspunkte.
-- Zwischen Abschnitten eine Leerzeile.
-
-Geben Sie ausschließlich den narrativen Befund zurück, ohne Titel, Action-Items, JSON oder zusätzliche Erklärungen."#
+${output}"#
                 .to_string(),
         },
         LLMPrompt {
             id: "soap_special".to_string(),
             name: "SOAP Special".to_string(),
             description: Some("SOAP with lifestyle & anamnesis focus (Ernährung, Schlaf, Sport, Alkohol, Medikation)".to_string()),
-            prompt: r#"Das Folgende ist eine wörtliche Abschrift eines ärztlichen Gesprächs in der hausärztlichen Versorgung. Erstellen Sie daraus eine strukturierte ärztliche Dokumentation im SOAP-Format mit besonderem Fokus auf Lifestyle-Anamnese.
+            prompt: r#"Wie SOAP (DE), plus Lifestyle-Themen dem passenden Abschnitt zuordnen (Ernährung, Alkohol, Medikation/Supplements, Schlaf, Sport, Soziales/Familie → meist Beurteilung). Mehrere Themen im selben Satz splitten. Fünf Abschnitte mit "• "-Zeilen wie bei SOAP (DE). Nur Gesprächsinhalte.
 
 Transkript:
-${output}
-
-Verwenden Sie exakt diese fünf Abschnitte: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere. Erfassen Sie beiläufig erwähnte Themen und ordnen Sie sie dem richtigen Abschnitt zu:
-- Ernährung (vegetarisch, Essgewohnheiten) → Beurteilung
-- Alkoholkonsum (Menge, Frequenz) → Beurteilung
-- Medikation/Supplements → Beurteilung
-- Schlafqualität (Einschlafprobleme, Schnarchen) → Beurteilung
-- Aktivität/Sport → Beurteilung
-- Persönliche/Familiäre Anamnese, Soziale Situation → Beurteilung
-
-WICHTIG: Mehrere Themen in einem Satz splitten und jeweils im passenden Abschnitt dokumentieren. NUR Informationen aus dem Gespräch. Kein Halluzinieren.
-
-Geben Sie ausschließlich den SOAP-Text zurück, ohne Titel, Action-Items, JSON oder zusätzliche Erklärungen."#
+${output}"#
                 .to_string(),
         },
         LLMPrompt {
             id: "soap_problems".to_string(),
             name: "SOAP Problems".to_string(),
             description: Some("Problem-oriented documentation with 41 standardized categories (Swiss GP)".to_string()),
-            prompt: r#"Das Folgende ist eine wörtliche Abschrift eines Arzt-Patienten-Gesprächs in einer Schweizer Hausarztpraxis. Strukturieren Sie das Gespräch problemorientiert.
+            prompt: r#"Problemorientiert (Schweizer Hausarzt): 2–6 Probleme; pro Problem kurzer Titel/Kategorie wenn ableitbar (z. B. K85 Hypertonie). Pro Problem: Subjektiv, Objektiv, Beurteilung, Procedere — nur knappe "• "-Zeilen. Unklares unter "unassigned". Schwiizerdütsch→korrektes Deutsch. Kein Halluzinieren, kein JSON.
+
+Format:
+Problem 1: …
+Subjektiv
+• …
 
 Transkript:
-${output}
-
-Erkennen Sie 2–6 klinische Probleme und ordnen Sie JEDES Problem einer der 41 standardisierten Kategorien zu (z. B. S27=Haut, K85=arterielle Hypertonie, T90=Diabetes mellitus, P03=Depression, U14=Nierenprobleme, L03=Rückenproblem, etc.). Verstehen Sie Schwiizerdütsch und übertragen Sie es korrekt ins Deutsche.
-
-Für jedes Problem: SOAP mit kurzen, präzisen Bulletpoints. Nur Informationen aus dem Transkript. Unklare Aussagen unter "unassigned" ablegen.
-
-Format: Für jedes Problem die Überschrift "Problem X: [Titel]", darunter Subjektiv, Objektiv, Beurteilung, Procedere mit Aufzählungspunkten.
-
-Geben Sie ausschließlich die strukturierte problemorientierte Dokumentation zurück, ohne Gesamttitel, Action-Items, JSON oder zusätzliche Erklärungen. Verwenden Sie schweizerische Fachsprache wo passend."#
+${output}"#
                 .to_string(),
         },
         LLMPrompt {
             id: "soap_nephrology".to_string(),
             name: "SOAP Nephrology".to_string(),
             description: Some("SOAP with kidney focus and systematic physical exam (top-down: Kopf → Thorax → Abdomen → Genital → Extremitäten)".to_string()),
-            prompt: r#"Das Folgende ist eine wörtliche Abschrift eines ärztlichen Gesprächs in der hausärztlichen Versorgung. Erstellen Sie daraus eine strukturierte ärztliche Dokumentation im SOAP-Format mit nephrologischem Fokus.
+            prompt: r#"SOAP (DE) mit nephrologischem Fokus: Flüssigkeit/Ödeme, Vitale, Labs nur wenn genannt. Untersuchung: falls erwähnt, eine kompakte top-down "• "-Liste (Kopf/Hals → Thorax → Abdomen → Genital/DRU → Extremitäten). Diagnosen präzise benennen wenn im Transkript angelegt. Sonst "• Keine Angaben". Kein JSON.
 
 Transkript:
-${output}
-
-Verwenden Sie exakt diese fünf Abschnitte: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere.
-
-Für den Abschnitt Untersuchung gilt folgende top-down Struktur (falls im Gespräch enthalten):
-- Kopf/Hals: Pupillen, Karotiden, Jugularvenen
-- Thorax: Herztöne, Auskultation, Atemgeräusche
-- Abdomen: Darmgeräusche, Palpation, Leber/Milz
-- Genital/DRU: Prostata, äußere Genitalien
-- Extremitäten: Ödeme, Pulse, Reflexe
-
-Dokumentieren Sie Kreislaufsituation und Flüssigkeitsstatus (Ödeme, Hautturgor) präzise. Laborwerte (Kreatinin, GFR, Kalium) nur wenn im Gespräch genannt. Bei nephrologischen Diagnosen: exakte Begriffe wie "nephrotisches Syndrom", "chronische Niereninsuffizienz Stadium 3a", "Proteinurie".
-
-NUR Informationen aus dem Transkript. Keine Halluzinationen. Wenn keine Informationen vorliegen: "• Keine spezifischen Informationen dokumentiert".
-
-Geben Sie ausschließlich den SOAP-Text zurück, ohne Titel, Action-Items, JSON oder zusätzliche Erklärungen."#
+${output}"#
                 .to_string(),
         },
     ]
@@ -622,9 +686,14 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
                 let _ = existing;
             }
             None => {
+                let default_model = if provider.id == "local_private" {
+                    "local_fast".to_string()
+                } else {
+                    String::new()
+                };
                 settings
                     .post_process_models
-                    .insert(provider.id.clone(), String::new());
+                    .insert(provider.id.clone(), default_model);
                 changed = true;
             }
         }
@@ -662,15 +731,11 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     // One-time migration: update legacy soap_json_de to new soap prompt BEFORE adding defaults
     // (avoids ending up with both soap and soap_json_de)
     let default_prompts = default_post_process_prompts();
-    if let Some(existing) = settings
-        .post_process_prompts
-        .iter_mut()
-        .find(|prompt| {
-            prompt.id == "improve_transcription"
-                || prompt.id == "improve_transcript"
-                || prompt.name == "Improve Transcription"
-        })
-    {
+    if let Some(existing) = settings.post_process_prompts.iter_mut().find(|prompt| {
+        prompt.id == "improve_transcription"
+            || prompt.id == "improve_transcript"
+            || prompt.name == "Improve Transcription"
+    }) {
         if let Some(new_prompt) = default_prompts
             .iter()
             .find(|prompt| prompt.id == "transcript_improve")
@@ -683,23 +748,18 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
                 settings.post_process_selected_prompt_id.as_deref(),
                 Some("improve_transcription" | "improve_transcript")
             ) {
-                settings.post_process_selected_prompt_id =
-                    Some("transcript_improve".to_string());
+                settings.post_process_selected_prompt_id = Some("transcript_improve".to_string());
             }
             changed = true;
         }
     }
 
-    if let Some(existing) = settings
-        .post_process_prompts
-        .iter_mut()
-        .find(|prompt| {
-            prompt.id == "summarize_transcript"
-                || prompt.id == "summarize_transcript_bullets"
-                || prompt.id == "transcript_summary"
-                || prompt.name == "Summarize Transcript (Bullets)"
-        })
-    {
+    if let Some(existing) = settings.post_process_prompts.iter_mut().find(|prompt| {
+        prompt.id == "summarize_transcript"
+            || prompt.id == "summarize_transcript_bullets"
+            || prompt.id == "transcript_summary"
+            || prompt.name == "Summarize Transcript (Bullets)"
+    }) {
         if let Some(new_prompt) = default_prompts
             .iter()
             .find(|prompt| prompt.id == "transcript_summarize")
@@ -711,13 +771,10 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
             if matches!(
                 settings.post_process_selected_prompt_id.as_deref(),
                 Some(
-                    "summarize_transcript"
-                        | "summarize_transcript_bullets"
-                        | "transcript_summary"
+                    "summarize_transcript" | "summarize_transcript_bullets" | "transcript_summary"
                 )
             ) {
-                settings.post_process_selected_prompt_id =
-                    Some("transcript_summarize".to_string());
+                settings.post_process_selected_prompt_id = Some("transcript_summarize".to_string());
             }
             changed = true;
         }
@@ -728,8 +785,7 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         .iter_mut()
         .find(|prompt| prompt.id == "soap_json_de")
     {
-        if let Some(new_soap_prompt) = default_prompts.iter().find(|prompt| prompt.id == "soap")
-        {
+        if let Some(new_soap_prompt) = default_prompts.iter().find(|prompt| prompt.id == "soap") {
             existing.id = new_soap_prompt.id.clone();
             existing.name = new_soap_prompt.name.clone();
             existing.description = new_soap_prompt.description.clone();
@@ -783,13 +839,13 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         .iter()
         .map(|prompt| prompt.id.clone())
         .collect::<Vec<String>>();
-    settings.post_process_prompts.sort_by_key(|prompt| {
-        match prompt.id.as_str() {
+    settings
+        .post_process_prompts
+        .sort_by_key(|prompt| match prompt.id.as_str() {
             "transcript_improve" => 0,
             "transcript_summarize" => 1,
             _ => 2,
-        }
-    });
+        });
     let prompt_order_after = settings
         .post_process_prompts
         .iter()
@@ -869,6 +925,14 @@ pub fn get_default_settings() -> AppSettings {
         post_process_models: default_post_process_models(),
         post_process_prompts: default_post_process_prompts(),
         post_process_selected_prompt_id: None,
+        post_process_ollama_num_ctx: default_post_process_ollama_num_ctx(),
+        post_process_ollama_num_predict: default_post_process_ollama_num_predict(),
+        post_process_local_performance: LocalLlmPerformancePreset::default(),
+        post_process_local_ctx: default_post_process_local_ctx(),
+        post_process_local_max_tokens: default_post_process_local_max_tokens(),
+        post_process_local_temperature: default_post_process_local_temperature(),
+        post_process_local_idle_shutdown_minutes: default_post_process_local_idle_shutdown_minutes(
+        ),
         mute_while_recording: false,
         append_trailing_space: false,
         app_language: default_app_language(),
@@ -1006,4 +1070,34 @@ pub fn get_history_limit(app: &AppHandle) -> usize {
 pub fn get_recording_retention_period(app: &AppHandle) -> RecordingRetentionPeriod {
     let settings = get_settings(app);
     settings.recording_retention_period
+}
+
+#[cfg(test)]
+mod local_private_provider_tests {
+    use super::get_default_settings;
+    use super::LocalLlmPerformancePreset;
+
+    #[test]
+    fn default_post_process_providers_start_with_local_private() {
+        let settings = get_default_settings();
+        assert_eq!(
+            settings
+                .post_process_providers
+                .first()
+                .map(|p| p.id.as_str()),
+            Some("local_private")
+        );
+        assert!(settings
+            .post_process_providers
+            .iter()
+            .any(|p| p.id == "custom" && p.allow_base_url_edit));
+    }
+
+    #[test]
+    fn local_llm_performance_preset_defaults_to_default_variant() {
+        assert_eq!(
+            LocalLlmPerformancePreset::default(),
+            LocalLlmPerformancePreset::Default
+        );
+    }
 }

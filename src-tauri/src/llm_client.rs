@@ -1,9 +1,40 @@
 use crate::settings::PostProcessProvider;
 use log::debug;
+use regex::Regex;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE, REFERER, USER_AGENT};
 use serde::{Deserialize, Serialize};
+use std::sync::LazyLock;
 
-const DEFAULT_OLLAMA_NUM_CTX: u32 = 16_384;
+/// Inference options forwarded to Ollama when using the OpenAI-compatible `/v1/chat/completions` API.
+#[derive(Debug, Clone, Copy)]
+pub struct OllamaChatInferenceOptions {
+    pub num_ctx: u32,
+    /// When `None`, `num_predict` is omitted so the model uses its default (no explicit cap).
+    pub num_predict: Option<u32>,
+}
+
+/// Optional OpenAI-style fields for providers that accept top-level `temperature` / `max_tokens`
+/// (for example bundled `llama-server`).
+#[derive(Debug, Clone, Copy)]
+pub struct ChatCompletionExtras {
+    pub temperature: Option<f64>,
+    pub max_tokens: Option<u32>,
+}
+
+static RE_THINK_TAG: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?s)\x3Cthink\x3E.*?\x3C/think\x3E").expect("RE_THINK_TAG"));
+
+static RE_REDACTED_THINKING: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?s)\x3Credacted_thinking\x3E.*?\x3C/redacted_thinking\x3E")
+        .expect("RE_REDACTED_THINKING")
+});
+
+/// Removes common "reasoning" wrappers (e.g. Qwen thinking mode) from model output.
+pub fn strip_llm_thinking_blocks(text: &str) -> String {
+    let s = RE_THINK_TAG.replace_all(text, "");
+    let s = RE_REDACTED_THINKING.replace_all(&s, "");
+    s.trim().to_string()
+}
 
 #[derive(Debug, Serialize)]
 struct ChatMessage {
@@ -11,9 +42,11 @@ struct ChatMessage {
     content: String,
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Debug, Serialize)]
 struct ChatCompletionOptions {
     num_ctx: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    num_predict: Option<u32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -22,6 +55,10 @@ struct ChatCompletionRequest {
     messages: Vec<ChatMessage>,
     #[serde(skip_serializing_if = "Option::is_none")]
     options: Option<ChatCompletionOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    temperature: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -85,7 +122,7 @@ fn create_client(provider: &PostProcessProvider, api_key: &str) -> Result<reqwes
         .map_err(|e| format!("Failed to build HTTP client: {}", e))
 }
 
-fn uses_ollama_chat_options(provider: &PostProcessProvider) -> bool {
+pub fn uses_ollama_openai_compatible_endpoint(provider: &PostProcessProvider) -> bool {
     if provider.id != "custom" {
         return false;
     }
@@ -97,13 +134,24 @@ fn uses_ollama_chat_options(provider: &PostProcessProvider) -> bool {
     matches!(url.port_or_known_default(), Some(11434))
 }
 
-fn build_chat_completion_request(model: &str, prompt: String, provider: &PostProcessProvider) -> ChatCompletionRequest {
-    let options = if uses_ollama_chat_options(provider) {
-        Some(ChatCompletionOptions {
-            num_ctx: DEFAULT_OLLAMA_NUM_CTX,
+fn build_chat_completion_request(
+    model: &str,
+    prompt: String,
+    provider: &PostProcessProvider,
+    ollama_inference: Option<OllamaChatInferenceOptions>,
+    extras: Option<ChatCompletionExtras>,
+) -> ChatCompletionRequest {
+    let options = if uses_ollama_openai_compatible_endpoint(provider) {
+        ollama_inference.map(|opt| ChatCompletionOptions {
+            num_ctx: opt.num_ctx,
+            num_predict: opt.num_predict,
         })
     } else {
         None
+    };
+    let (temperature, max_tokens) = match extras {
+        Some(e) => (e.temperature, e.max_tokens),
+        None => (None, None),
     };
 
     ChatCompletionRequest {
@@ -113,6 +161,8 @@ fn build_chat_completion_request(model: &str, prompt: String, provider: &PostPro
             content: prompt,
         }],
         options,
+        temperature,
+        max_tokens,
     }
 }
 
@@ -124,6 +174,8 @@ pub async fn send_chat_completion(
     api_key: String,
     model: &str,
     prompt: String,
+    ollama_inference: Option<OllamaChatInferenceOptions>,
+    extras: Option<ChatCompletionExtras>,
 ) -> Result<Option<String>, String> {
     let base_url = provider.base_url.trim_end_matches('/');
     let url = format!("{}/chat/completions", base_url);
@@ -131,7 +183,8 @@ pub async fn send_chat_completion(
     debug!("Sending chat completion request to: {}", url);
 
     let client = create_client(provider, &api_key)?;
-    let request_body = build_chat_completion_request(model, prompt, provider);
+    let request_body =
+        build_chat_completion_request(model, prompt, provider, ollama_inference, extras);
 
     let response = client
         .post(&url)
@@ -225,7 +278,10 @@ pub async fn fetch_models(
 
 #[cfg(test)]
 mod tests {
-    use super::{build_chat_completion_request, uses_ollama_chat_options, DEFAULT_OLLAMA_NUM_CTX};
+    use super::{
+        build_chat_completion_request, uses_ollama_openai_compatible_endpoint,
+        ChatCompletionExtras, OllamaChatInferenceOptions,
+    };
     use crate::settings::PostProcessProvider;
 
     fn build_provider(id: &str, base_url: &str) -> PostProcessProvider {
@@ -242,32 +298,94 @@ mod tests {
     fn detects_default_ollama_openai_endpoint() {
         let provider = build_provider("custom", "http://localhost:11434/v1");
 
-        assert!(uses_ollama_chat_options(&provider));
+        assert!(uses_ollama_openai_compatible_endpoint(&provider));
     }
 
     #[test]
     fn skips_ollama_options_for_non_ollama_provider() {
         let provider = build_provider("custom", "https://api.openai.com/v1");
 
-        assert!(!uses_ollama_chat_options(&provider));
+        assert!(!uses_ollama_openai_compatible_endpoint(&provider));
     }
 
     #[test]
-    fn includes_num_ctx_for_ollama_requests() {
+    fn includes_options_for_ollama_requests() {
         let provider = build_provider("custom", "http://127.0.0.1:11434/v1");
-        let request = build_chat_completion_request("qwen2.5:14b", "hello".to_string(), &provider);
+        let ollama = OllamaChatInferenceOptions {
+            num_ctx: 8192,
+            num_predict: None,
+        };
+        let request = build_chat_completion_request(
+            "qwen2.5:14b",
+            "hello".to_string(),
+            &provider,
+            Some(ollama),
+            None,
+        );
 
+        assert_eq!(request.options.as_ref().map(|o| o.num_ctx), Some(8192));
+        assert_eq!(request.options.as_ref().and_then(|o| o.num_predict), None);
+    }
+
+    #[test]
+    fn includes_num_predict_when_set() {
+        let provider = build_provider("custom", "http://127.0.0.1:11434/v1");
+        let ollama = OllamaChatInferenceOptions {
+            num_ctx: 4096,
+            num_predict: Some(2048),
+        };
+        let request = build_chat_completion_request(
+            "llama3.2",
+            "hi".to_string(),
+            &provider,
+            Some(ollama),
+            None,
+        );
+
+        assert_eq!(request.options.as_ref().map(|o| o.num_ctx), Some(4096));
         assert_eq!(
-            request.options.map(|options| options.num_ctx),
-            Some(DEFAULT_OLLAMA_NUM_CTX)
+            request.options.as_ref().and_then(|o| o.num_predict),
+            Some(2048)
         );
     }
 
     #[test]
-    fn omits_num_ctx_for_non_ollama_requests() {
+    fn omits_options_for_non_ollama_requests() {
         let provider = build_provider("anamedi", "https://app.anamedi.com");
-        let request = build_chat_completion_request("model", "hello".to_string(), &provider);
+        let request = build_chat_completion_request(
+            "model",
+            "hello".to_string(),
+            &provider,
+            Some(OllamaChatInferenceOptions {
+                num_ctx: 9999,
+                num_predict: Some(1),
+            }),
+            None,
+        );
 
         assert!(request.options.is_none());
+    }
+
+    #[test]
+    fn includes_temperature_and_max_tokens_when_extras_set() {
+        let provider = build_provider("anamedi", "https://example.com/v1");
+        let request = build_chat_completion_request(
+            "m",
+            "x".to_string(),
+            &provider,
+            None,
+            Some(ChatCompletionExtras {
+                temperature: Some(0.4),
+                max_tokens: Some(2048),
+            }),
+        );
+        assert_eq!(request.temperature, Some(0.4));
+        assert_eq!(request.max_tokens, Some(2048));
+    }
+
+    #[test]
+    fn strips_think_wrappers_from_output() {
+        let raw = "\x3Cthink\x3Ehidden\x3C/think\x3E\nHello";
+        assert_eq!(super::strip_llm_thinking_blocks(raw), "Hello");
     }
 }

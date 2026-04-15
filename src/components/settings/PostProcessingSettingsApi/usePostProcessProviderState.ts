@@ -4,12 +4,15 @@ import { commands, type PostProcessProvider } from "@/bindings";
 import type { ModelOption } from "./types";
 import type { DropdownOption } from "../../ui/Dropdown";
 
+const LOCAL_PRIVATE_PROVIDER_ID = "local_private";
+
 type PostProcessProviderState = {
   enabled: boolean;
   providerOptions: DropdownOption[];
   selectedProviderId: string;
   selectedProvider: PostProcessProvider | undefined;
   isCustomProvider: boolean;
+  isLocalPrivateProvider: boolean;
   isAppleProvider: boolean;
   appleIntelligenceUnavailable: boolean;
   baseUrl: string;
@@ -59,6 +62,8 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     );
   }, [providers, selectedProviderId]);
 
+  const isLocalPrivateProvider =
+    selectedProvider?.id === LOCAL_PRIVATE_PROVIDER_ID;
   const isAppleProvider = selectedProvider?.id === APPLE_PROVIDER_ID;
   const [appleIntelligenceUnavailable, setAppleIntelligenceUnavailable] =
     useState(false);
@@ -147,7 +152,11 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
   const handleRefreshModels = useCallback(() => {
     if (isAppleProvider) return;
     void fetchPostProcessModels(selectedProviderId);
-  }, [fetchPostProcessModels, isAppleProvider, selectedProviderId]);
+  }, [
+    fetchPostProcessModels,
+    isAppleProvider,
+    selectedProviderId,
+  ]);
 
   const availableModelsRaw = postProcessModelOptions[selectedProviderId] || [];
 
@@ -196,6 +205,7 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     selectedProviderId,
     selectedProvider,
     isCustomProvider,
+    isLocalPrivateProvider,
     isAppleProvider,
     appleIntelligenceUnavailable,
     baseUrl,

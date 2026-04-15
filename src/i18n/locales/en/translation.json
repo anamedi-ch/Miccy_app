@@ -277,6 +277,64 @@
           "placeholderWithOptions": "Search or select a model",
           "placeholderNoOptions": "Type a model name",
           "refreshModels": "Refresh models"
+        },
+        "localPrivate": {
+          "intro": "Runs only on this device. No account. The first download is large (several GB). A small helper is downloaded automatically the first time you use this. On macOS, Security & Privacy may ask you to allow it.",
+          "unsupportedPlatform": "On-device summarization is not available on this system.",
+          "downloadModel": "Download model",
+          "model": {
+            "fast": "Faster (smaller)",
+            "quality": "Higher quality (larger)",
+            "apertus": "Apertus 8B (open multilingual)",
+            "description": "Pick a size or model family. The GGUF file name is shown when you open the list. Download the model before first use."
+          },
+          "performance": {
+            "title": "Speed vs. memory",
+            "description": "Low uses CPU only and is slower. Default and High use GPU acceleration when available.",
+            "low": "Low (CPU only)",
+            "default": "Default",
+            "high": "High (more GPU)"
+          },
+          "advanced": {
+            "toggle": "Expert options for local model"
+          },
+          "inference": {
+            "ctx": {
+              "title": "Context window (local)",
+              "description": "Maximum tokens for the prompt plus transcript. Default 12288 fits about 15–20 minutes of dictation plus instructions. Range 2048–131072."
+            },
+            "maxTokens": {
+              "title": "Max response tokens (local)",
+              "description": "Optional cap on generated tokens (same idea as Ollama num_predict). Use 0 for no limit (recommended for long clinical notes). If set, range 1–131072."
+            },
+            "temperature": {
+              "title": "Temperature (local)",
+              "description": "Lower values give steadier medical wording; higher values add variety. Range 0–2. Default 0.35."
+            },
+            "idleShutdown": {
+              "title": "Stop helper after idle (minutes)",
+              "description": "After structuring finishes, stop the local model server after this many minutes to free memory. 0 keeps the server running until you change model, performance, or context. Maximum 720 (12 hours)."
+            }
+          },
+          "errors": {
+            "generic": "Local structuring issue: {{detail}}",
+            "model_not_downloaded": "The selected on-device model is not downloaded yet. Open the list and use Download model, or pick another tier.",
+            "configuration_error": "Configuration error: {{detail}}",
+            "server_start_failed": "The on-device helper could not start. {{detail}}",
+            "download_failed": "Model download failed. {{detail}}",
+            "insufficient_disk_space": "Not enough free disk space. {{detail}}",
+            "inference_failed": "The model did not return usable text. {{detail}}"
+          }
+        },
+        "ollama": {
+          "numCtx": {
+            "title": "Ollama context (num_ctx)",
+            "description": "Token context for structuring. Default 12288 fits ~15–20 minutes of German dictation plus instructions. Lower values risk cutting off long consultations; raise to 16384 or 32768 if needed. Range 2048–131072. Only used when the base URL uses Ollama’s default port (11434)."
+          },
+          "numPredict": {
+            "title": "Max response tokens (num_predict)",
+            "description": "Optional cap on how many tokens the model may generate. Use 0 for no limit (recommended for long clinical notes so output is never cut off). If set, range 1–131072."
+          }
         }
       },
       "prompts": {

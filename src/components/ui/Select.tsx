@@ -3,6 +3,7 @@ import SelectComponent from "react-select";
 import CreatableSelect from "react-select/creatable";
 import type {
   ActionMeta,
+  FormatOptionLabelMeta,
   Props as ReactSelectProps,
   SingleValue,
   StylesConfig,
@@ -12,6 +13,8 @@ export type SelectOption = {
   value: string;
   label: string;
   isDisabled?: boolean;
+  /** Second line in the open menu only (react-select formatOptionLabel). */
+  menuDetail?: string;
 };
 
 type BaseProps = {
@@ -153,6 +156,24 @@ export const Select: React.FC<SelectProps> = React.memo(
       onChange(option?.value ?? null, action);
     };
 
+    const hasMenuDetails = options.some((o) => Boolean(o.menuDetail));
+    const formatOptionLabel = React.useCallback(
+      (option: SelectOption, meta: FormatOptionLabelMeta<SelectOption>) => {
+        if (meta.context === "menu" && option.menuDetail) {
+          return (
+            <div className="leading-snug py-0.5">
+              <div>{option.label}</div>
+              <div className="text-xs font-normal text-mid-gray/80 mt-0.5">
+                {option.menuDetail}
+              </div>
+            </div>
+          );
+        }
+        return option.label;
+      },
+      [],
+    );
+
     const sharedProps: Partial<ReactSelectProps<SelectOption, false>> = {
       className,
       classNamePrefix: "app-select",
@@ -165,6 +186,7 @@ export const Select: React.FC<SelectProps> = React.memo(
       onBlur,
       isClearable,
       styles: selectStyles,
+      ...(hasMenuDetails ? { formatOptionLabel } : {}),
     };
 
     if (isCreatable) {

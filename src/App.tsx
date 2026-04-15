@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { listen } from "@tauri-apps/api/event";
 import { platform } from "@tauri-apps/plugin-os";
 import {
   checkAccessibilityPermission,
@@ -24,8 +25,10 @@ const renderSettingsContent = (section: SidebarSection) => {
   return <ActiveComponent />;
 };
 
+const LOCAL_PRIVATE_LLM_ERROR_EVENT = "local-private-llm-error";
+
 function App() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(
     null,
   );
@@ -52,6 +55,26 @@ function App() {
   useEffect(() => {
     initializeRTL(i18n.language);
   }, [i18n.language]);
+
+  useEffect(() => {
+    const unlisten = listen<{
+      code: string;
+      detail?: string | null;
+    }>(LOCAL_PRIVATE_LLM_ERROR_EVENT, (event) => {
+      const { code, detail } = event.payload;
+      const key = `settings.postProcessing.api.localPrivate.errors.${code}`;
+      const detailText = detail ?? "";
+      const msg = i18n.exists(key)
+        ? t(key, { detail: detailText })
+        : t("settings.postProcessing.api.localPrivate.errors.generic", {
+            detail: detailText || code,
+          });
+      toast.error(msg);
+    });
+    return () => {
+      void unlisten.then((u) => u());
+    };
+  }, [i18n, t]);
 
   // Initialize Enigo, shortcuts, and refresh audio devices when main app loads
   useEffect(() => {

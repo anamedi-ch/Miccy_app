@@ -23,6 +23,7 @@ use tauri_specta::{collect_commands, Builder};
 use env_filter::Builder as EnvFilterBuilder;
 use managers::audio::AudioRecordingManager;
 use managers::history::HistoryManager;
+use managers::local_llm::LocalLlmCoordinator;
 use managers::model::ModelManager;
 use managers::transcription::TranscriptionManager;
 #[cfg(unix)]
@@ -33,6 +34,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::image::Image;
+use tauri::RunEvent;
 
 use tauri::tray::TrayIconBuilder;
 use tauri::Emitter;
@@ -259,6 +261,13 @@ pub fn run() {
         shortcut::change_post_process_base_url_setting,
         shortcut::change_post_process_api_key_setting,
         shortcut::change_post_process_model_setting,
+        shortcut::change_post_process_ollama_num_ctx_setting,
+        shortcut::change_post_process_ollama_num_predict_setting,
+        shortcut::change_post_process_local_performance_setting,
+        shortcut::change_post_process_local_ctx_setting,
+        shortcut::change_post_process_local_max_tokens_setting,
+        shortcut::change_post_process_local_temperature_setting,
+        shortcut::change_post_process_local_idle_shutdown_minutes_setting,
         shortcut::set_post_process_provider,
         shortcut::fetch_post_process_models,
         shortcut::add_post_process_prompt,
@@ -325,6 +334,10 @@ pub fn run() {
         commands::history::update_history_limit,
         commands::history::update_recording_retention_period,
         helpers::clamshell::is_laptop,
+        commands::local_llm::get_local_llm_catalog,
+        commands::local_llm::get_local_llm_runtime_status,
+        commands::local_llm::is_local_llm_model_downloaded,
+        commands::local_llm::download_local_llm_model,
     ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds
@@ -382,6 +395,7 @@ pub fn run() {
             Some(vec![]),
         ))
         .manage(Mutex::new(ShortcutToggleStates::default()))
+        .manage(Arc::new(LocalLlmCoordinator::new()))
         .setup(move |app| {
             let settings = get_settings(&app.handle());
             let tauri_log_level: tauri_plugin_log::LogLevel = settings.log_level.into();
@@ -424,6 +438,11 @@ pub fn run() {
             _ => {}
         })
         .invoke_handler(specta_builder.invoke_handler())
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let RunEvent::Exit = event {
+                crate::managers::local_llm::stop_server(app_handle);
+            }
+        });
 }

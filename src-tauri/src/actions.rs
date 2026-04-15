@@ -1,11 +1,18 @@
 use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
+use crate::managers::local_llm::{emit_local_private_error, LocalLlmCoordinator};
 use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{get_settings, AppSettings};
+use crate::settings::{
+    clamp_local_post_process_ctx, clamp_local_post_process_temperature,
+    clamp_ollama_post_process_num_ctx, get_settings, normalize_local_post_process_max_tokens,
+    normalize_ollama_post_process_num_predict, AppSettings, PostProcessProvider,
+};
 use crate::shortcut;
 use crate::tray::{change_tray_icon, TrayIconState};
-use crate::utils::{self, show_recording_overlay, show_structuring_overlay, show_transcribing_overlay};
+use crate::utils::{
+    self, show_recording_overlay, show_structuring_overlay, show_transcribing_overlay,
+};
 use crate::ManagedToggleState;
 use crate::{anamedi_client, audio_toolkit::save_wav_file};
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
@@ -19,6 +26,19 @@ use std::sync::Arc;
 use std::time::Instant;
 use tauri::AppHandle;
 use tauri::Manager;
+
+struct LocalLlmIdleOnDrop<'a> {
+    app: &'a AppHandle,
+    coordinator: Arc<LocalLlmCoordinator>,
+    minutes: u32,
+}
+
+impl Drop for LocalLlmIdleOnDrop<'_> {
+    fn drop(&mut self) {
+        self.coordinator
+            .schedule_idle_shutdown_after_use(self.app, self.minutes);
+    }
+}
 
 // Shortcut Action Trait
 pub trait ShortcutAction: Send + Sync {
@@ -37,6 +57,7 @@ pub struct ProcessedTranscription {
 }
 
 async fn maybe_post_process_transcription(
+    app: &AppHandle,
     settings: &AppSettings,
     transcription: &str,
     audio_samples: &[f32],
@@ -83,6 +104,106 @@ async fn maybe_post_process_transcription(
             .await;
     }
 
+    if prompt.trim().is_empty() {
+        debug!("Post-processing skipped because the selected prompt is empty");
+        return None;
+    }
+
+    let processed_prompt = prompt.replace("${output}", transcription);
+
+    if provider.id == crate::managers::local_llm::PROVIDER_ID {
+        let coordinator = app.try_state::<Arc<LocalLlmCoordinator>>()?;
+        let tier = settings
+            .post_process_models
+            .get(&provider.id)
+            .map(String::as_str)
+            .filter(|s| !s.trim().is_empty())
+            .unwrap_or(crate::managers::local_llm::TIER_FAST);
+        let model_path = match crate::managers::local_llm::resolve_model_path(app, tier) {
+            Ok(p) => p,
+            Err(e) => {
+                error!("Local post-process: {}", e);
+                emit_local_private_error(app, "configuration_error", Some(e.clone()));
+                return None;
+            }
+        };
+        if !model_path.exists() {
+            debug!(
+                "Post-processing skipped: local model tier '{}' is not downloaded yet",
+                tier
+            );
+            emit_local_private_error(app, "model_not_downloaded", Some(tier.to_string()));
+            return None;
+        }
+        let preset = settings.post_process_local_performance;
+        let ctx = clamp_local_post_process_ctx(settings.post_process_local_ctx);
+        let (dynamic, model_id) = match coordinator
+            .ensure_server_for_post_process(app, &model_path, preset, ctx)
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                error!("Local LLM server failed: {}", e);
+                return None;
+            }
+        };
+        let idle_minutes = settings.post_process_local_idle_shutdown_minutes;
+        let _idle_on_drop = LocalLlmIdleOnDrop {
+            app,
+            coordinator: Arc::clone(&*coordinator),
+            minutes: idle_minutes,
+        };
+        let merged_provider = PostProcessProvider {
+            id: provider.id.clone(),
+            label: provider.label.clone(),
+            base_url: dynamic.base_url,
+            allow_base_url_edit: false,
+            models_endpoint: None,
+        };
+        let extras = crate::llm_client::ChatCompletionExtras {
+            temperature: Some(clamp_local_post_process_temperature(
+                settings.post_process_local_temperature,
+            )),
+            max_tokens: normalize_local_post_process_max_tokens(
+                settings.post_process_local_max_tokens,
+            ),
+        };
+        return match crate::llm_client::send_chat_completion(
+            &merged_provider,
+            String::new(),
+            &model_id,
+            processed_prompt,
+            None,
+            Some(extras),
+        )
+        .await
+        {
+            Ok(Some(content)) => {
+                let content = crate::llm_client::strip_llm_thinking_blocks(&content);
+                let content = content
+                    .replace('\u{200B}', "")
+                    .replace('\u{200C}', "")
+                    .replace('\u{200D}', "")
+                    .replace('\u{FEFF}', "");
+                Some(content)
+            }
+            Ok(None) => {
+                error!("LLM API response has no content");
+                emit_local_private_error(
+                    app,
+                    "inference_failed",
+                    Some("empty_response".to_string()),
+                );
+                None
+            }
+            Err(e) => {
+                error!("Local LLM post-processing failed: {}", e);
+                emit_local_private_error(app, "inference_failed", Some(e.clone()));
+                None
+            }
+        };
+    }
+
     let model = settings
         .post_process_models
         .get(&provider.id)
@@ -97,18 +218,11 @@ async fn maybe_post_process_transcription(
         return None;
     }
 
-    if prompt.trim().is_empty() {
-        debug!("Post-processing skipped because the selected prompt is empty");
-        return None;
-    }
-
     debug!(
         "Starting LLM post-processing with provider '{}' (model: {})",
         provider.id, model
     );
 
-    // Replace ${output} variable in the prompt with the actual text
-    let processed_prompt = prompt.replace("${output}", transcription);
     debug!("Processed prompt length: {} chars", processed_prompt.len());
 
     let api_key = settings
@@ -117,9 +231,27 @@ async fn maybe_post_process_transcription(
         .cloned()
         .unwrap_or_default();
 
+    let ollama_inference = if crate::llm_client::uses_ollama_openai_compatible_endpoint(&provider) {
+        Some(crate::llm_client::OllamaChatInferenceOptions {
+            num_ctx: clamp_ollama_post_process_num_ctx(settings.post_process_ollama_num_ctx),
+            num_predict: normalize_ollama_post_process_num_predict(
+                settings.post_process_ollama_num_predict,
+            ),
+        })
+    } else {
+        None
+    };
+
     // Send the chat completion request
-    match crate::llm_client::send_chat_completion(&provider, api_key, &model, processed_prompt)
-        .await
+    match crate::llm_client::send_chat_completion(
+        &provider,
+        api_key,
+        &model,
+        processed_prompt,
+        ollama_inference,
+        None,
+    )
+    .await
     {
         Ok(Some(content)) => {
             // Strip invisible Unicode characters that some LLMs (e.g., Qwen) may insert
@@ -368,6 +500,7 @@ fn should_show_structuring_overlay(settings: &AppSettings) -> bool {
 }
 
 pub async fn process_transcription_result(
+    app: &AppHandle,
     settings: &AppSettings,
     transcription: &str,
     audio_samples: &[f32],
@@ -389,7 +522,7 @@ pub async fn process_transcription_result(
     }
 
     if let Some(processed_text) =
-        maybe_post_process_transcription(settings, &final_text, audio_samples).await
+        maybe_post_process_transcription(app, settings, &final_text, audio_samples).await
     {
         if processed_text.trim().is_empty() {
             debug!("Post-processing returned empty output; keeping transcription result");
@@ -548,6 +681,7 @@ impl ShortcutAction for TranscribeAction {
                                 show_structuring_overlay(&ah);
                             }
                             let processed = process_transcription_result(
+                                &ah,
                                 &settings,
                                 &transcription,
                                 &post_process_samples,

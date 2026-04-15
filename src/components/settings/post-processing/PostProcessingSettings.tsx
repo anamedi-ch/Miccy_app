@@ -20,6 +20,7 @@ import { ApiKeyField } from "../PostProcessingSettingsApi/ApiKeyField";
 import { ModelSelect } from "../PostProcessingSettingsApi/ModelSelect";
 import { usePostProcessProviderState } from "../PostProcessingSettingsApi/usePostProcessProviderState";
 import { useSettings } from "../../../hooks/useSettings";
+import { LocalPrivatePostProcessingSection } from "./LocalPrivatePostProcessingSection";
 
 const DisabledNotice: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -29,9 +30,12 @@ const DisabledNotice: React.FC<{ children: React.ReactNode }> = ({
   </div>
 );
 
+const OLLAMA_DEFAULT_NUM_CTX = 12288;
+
 const PostProcessingSettingsApiComponent: React.FC = () => {
   const { t } = useTranslation();
   const state = usePostProcessProviderState();
+  const { getSetting, updateSetting, isUpdating } = useSettings();
 
   if (!state.enabled) {
     return (
@@ -65,6 +69,15 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
             {t("settings.postProcessing.api.appleIntelligence.unavailable")}
           </Alert>
         ) : null
+      ) : state.isLocalPrivateProvider ? (
+        <LocalPrivatePostProcessingSection
+          model={state.model}
+          modelOptions={state.modelOptions}
+          onModelSelect={state.handleModelSelect}
+          onRefreshModels={state.handleRefreshModels}
+          isFetchingModels={state.isFetchingModels}
+          isModelUpdating={state.isModelUpdating}
+        />
       ) : (
         <>
           {state.selectedProvider?.id === "custom" && (
@@ -108,51 +121,110 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
               />
             </div>
           </SettingContainer>
+
+          <SettingContainer
+            title={t("settings.postProcessing.api.model.title")}
+            description={
+              state.isCustomProvider
+                ? t("settings.postProcessing.api.model.descriptionCustom")
+                : t("settings.postProcessing.api.model.descriptionDefault")
+            }
+            descriptionMode="tooltip"
+            layout="stacked"
+            grouped={true}
+          >
+            <div className="flex items-center gap-2">
+              <ModelSelect
+                value={state.model}
+                options={state.modelOptions}
+                disabled={state.isModelUpdating}
+                isLoading={state.isFetchingModels}
+                placeholder={
+                  state.modelOptions.length > 0
+                    ? t(
+                        "settings.postProcessing.api.model.placeholderWithOptions",
+                      )
+                    : t("settings.postProcessing.api.model.placeholderNoOptions")
+                }
+                onSelect={state.handleModelSelect}
+                onCreate={state.handleModelCreate}
+                onBlur={() => {}}
+                className="flex-1 min-w-[380px]"
+              />
+              <ResetButton
+                onClick={state.handleRefreshModels}
+                disabled={state.isFetchingModels}
+                ariaLabel={t("settings.postProcessing.api.model.refreshModels")}
+                className="flex h-10 w-10 items-center justify-center"
+              >
+                <RefreshCcw
+                  className={`h-4 w-4 ${state.isFetchingModels ? "animate-spin" : ""}`}
+                />
+              </ResetButton>
+            </div>
+          </SettingContainer>
         </>
       )}
 
-      {!state.isAppleProvider && (
-        <SettingContainer
-          title={t("settings.postProcessing.api.model.title")}
-          description={
-            state.isCustomProvider
-              ? t("settings.postProcessing.api.model.descriptionCustom")
-              : t("settings.postProcessing.api.model.descriptionDefault")
-          }
-          descriptionMode="tooltip"
-          layout="stacked"
-          grouped={true}
-        >
-          <div className="flex items-center gap-2">
-            <ModelSelect
-              value={state.model}
-              options={state.modelOptions}
-              disabled={state.isModelUpdating}
-              isLoading={state.isFetchingModels}
-              placeholder={
-                state.modelOptions.length > 0
-                  ? t(
-                      "settings.postProcessing.api.model.placeholderWithOptions",
-                    )
-                  : t("settings.postProcessing.api.model.placeholderNoOptions")
-              }
-              onSelect={state.handleModelSelect}
-              onCreate={state.handleModelCreate}
-              onBlur={() => {}}
-              className="flex-1 min-w-[380px]"
+      {state.isCustomProvider &&
+        !state.isAppleProvider &&
+        !state.isLocalPrivateProvider && (
+        <>
+          <SettingContainer
+            title={t("settings.postProcessing.api.ollama.numCtx.title")}
+            description={t("settings.postProcessing.api.ollama.numCtx.description")}
+            descriptionMode="tooltip"
+            layout="horizontal"
+            grouped={true}
+          >
+            <Input
+              type="number"
+              min={2048}
+              max={131072}
+              step={1024}
+              defaultValue={String(
+                getSetting("post_process_ollama_num_ctx") ?? OLLAMA_DEFAULT_NUM_CTX,
+              )}
+              key={`ctx-${getSetting("post_process_ollama_num_ctx") ?? OLLAMA_DEFAULT_NUM_CTX}`}
+              disabled={isUpdating("post_process_ollama_num_ctx")}
+              className="min-w-[140px] max-w-[200px]"
+              onBlur={(e) => {
+                const parsed = parseInt(e.target.value, 10);
+                if (Number.isNaN(parsed)) {
+                  return;
+                }
+                void updateSetting("post_process_ollama_num_ctx", parsed);
+              }}
             />
-            <ResetButton
-              onClick={state.handleRefreshModels}
-              disabled={state.isFetchingModels}
-              ariaLabel={t("settings.postProcessing.api.model.refreshModels")}
-              className="flex h-10 w-10 items-center justify-center"
-            >
-              <RefreshCcw
-                className={`h-4 w-4 ${state.isFetchingModels ? "animate-spin" : ""}`}
-              />
-            </ResetButton>
-          </div>
-        </SettingContainer>
+          </SettingContainer>
+          <SettingContainer
+            title={t("settings.postProcessing.api.ollama.numPredict.title")}
+            description={t("settings.postProcessing.api.ollama.numPredict.description")}
+            descriptionMode="tooltip"
+            layout="horizontal"
+            grouped={true}
+          >
+            <Input
+              type="number"
+              min={0}
+              max={131072}
+              step={256}
+              defaultValue={String(
+                getSetting("post_process_ollama_num_predict") ?? 0,
+              )}
+              key={`pred-${getSetting("post_process_ollama_num_predict") ?? 0}`}
+              disabled={isUpdating("post_process_ollama_num_predict")}
+              className="min-w-[140px] max-w-[200px]"
+              onBlur={(e) => {
+                const parsed = parseInt(e.target.value, 10);
+                if (Number.isNaN(parsed) || parsed < 0) {
+                  return;
+                }
+                void updateSetting("post_process_ollama_num_predict", parsed);
+              }}
+            />
+          </SettingContainer>
+        </>
       )}
     </>
   );

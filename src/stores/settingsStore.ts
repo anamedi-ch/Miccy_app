@@ -119,6 +119,24 @@ const settingUpdaters: {
     commands.changePostProcessEnabledSetting(value as boolean),
   post_process_selected_prompt_id: (value) =>
     commands.setPostProcessSelectedPrompt(value as string),
+  post_process_ollama_num_ctx: (value) =>
+    commands.changePostProcessOllamaNumCtxSetting(value as number),
+  post_process_ollama_num_predict: (value) =>
+    commands.changePostProcessOllamaNumPredictSetting(value as number),
+  post_process_local_performance: (value) =>
+    commands.changePostProcessLocalPerformanceSetting(
+      (value ?? "default") as NonNullable<
+        Settings["post_process_local_performance"]
+      >,
+    ),
+  post_process_local_ctx: (value) =>
+    commands.changePostProcessLocalCtxSetting(value as number),
+  post_process_local_max_tokens: (value) =>
+    commands.changePostProcessLocalMaxTokensSetting(value as number),
+  post_process_local_temperature: (value) =>
+    commands.changePostProcessLocalTemperatureSetting(value as number),
+  post_process_local_idle_shutdown_minutes: (value) =>
+    commands.changePostProcessLocalIdleShutdownMinutesSetting(value as number),
   mute_while_recording: (value) =>
     commands.changeMuteWhileRecordingSetting(value as boolean),
   append_trailing_space: (value) =>
@@ -260,6 +278,17 @@ export const useSettingsStore = create<SettingsStore>()(
         const updater = settingUpdaters[key];
         if (updater) {
           await updater(value);
+          if (
+            key === "post_process_ollama_num_ctx" ||
+            key === "post_process_ollama_num_predict" ||
+            key === "post_process_local_performance" ||
+            key === "post_process_local_ctx" ||
+            key === "post_process_local_max_tokens" ||
+            key === "post_process_local_temperature" ||
+            key === "post_process_local_idle_shutdown_minutes"
+          ) {
+            await get().refreshSettings();
+          }
         } else if (key !== "bindings" && key !== "selected_model") {
           console.warn(`No handler for setting: ${String(key)}`);
         }

@@ -766,6 +766,97 @@ pub fn change_post_process_model_setting(
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_post_process_ollama_num_ctx_setting(
+    app: AppHandle,
+    num_ctx: u32,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.post_process_ollama_num_ctx = settings::clamp_ollama_post_process_num_ctx(num_ctx);
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_post_process_ollama_num_predict_setting(
+    app: AppHandle,
+    num_predict: u32,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.post_process_ollama_num_predict = if num_predict == 0 {
+        0
+    } else {
+        num_predict.min(settings::OLLAMA_POST_PROCESS_NUM_PREDICT_MAX)
+    };
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_post_process_local_performance_setting(
+    app: AppHandle,
+    preset: settings::LocalLlmPerformancePreset,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.post_process_local_performance = preset;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_post_process_local_ctx_setting(app: AppHandle, ctx: u32) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.post_process_local_ctx = settings::clamp_local_post_process_ctx(ctx);
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_post_process_local_max_tokens_setting(
+    app: AppHandle,
+    max_tokens: u32,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.post_process_local_max_tokens = if max_tokens == 0 {
+        0
+    } else {
+        max_tokens.min(settings::OLLAMA_POST_PROCESS_NUM_PREDICT_MAX)
+    };
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_post_process_local_temperature_setting(
+    app: AppHandle,
+    temperature: f64,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.post_process_local_temperature =
+        settings::clamp_local_post_process_temperature(temperature);
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_post_process_local_idle_shutdown_minutes_setting(
+    app: AppHandle,
+    minutes: u32,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.post_process_local_idle_shutdown_minutes =
+        settings::clamp_local_post_process_idle_shutdown_minutes(minutes);
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn set_post_process_provider(app: AppHandle, provider_id: String) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     validate_provider_exists(&settings, &provider_id)?;
@@ -857,6 +948,14 @@ pub async fn fetch_post_process_models(
     app: AppHandle,
     provider_id: String,
 ) -> Result<Vec<String>, String> {
+    if provider_id == crate::managers::local_llm::PROVIDER_ID {
+        return Ok(vec![
+            crate::managers::local_llm::TIER_FAST.to_string(),
+            crate::managers::local_llm::TIER_QUALITY.to_string(),
+            crate::managers::local_llm::TIER_APERTUS.to_string(),
+        ]);
+    }
+
     let settings = settings::get_settings(&app);
 
     // Find the provider

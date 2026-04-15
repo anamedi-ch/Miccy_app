@@ -269,6 +269,64 @@
           "placeholderWithOptions": "Modell suchen oder auswählen",
           "placeholderNoOptions": "Modellnamen eingeben",
           "refreshModels": "Modelle aktualisieren"
+        },
+        "localPrivate": {
+          "intro": "Läuft nur auf diesem Gerät. Kein Konto. Der erste Download ist groß (mehrere GB). Ein kleines Hilfsprogramm wird beim ersten Gebrauch automatisch heruntergeladen. Unter macOS kann „Sicherheit“ nach einer Freigabe fragen.",
+          "unsupportedPlatform": "On-device-Zusammenfassung ist auf diesem System nicht verfügbar.",
+          "downloadModel": "Modell herunterladen",
+          "model": {
+            "fast": "Schneller (kleiner)",
+            "quality": "Höhere Qualität (größer)",
+            "apertus": "Apertus 8B (offen, mehrsprachig)",
+            "description": "Größe oder Modellfamilie wählen. Beim Öffnen der Liste siehst du den GGUF-Dateinamen. Modell vor der ersten Nutzung herunterladen."
+          },
+          "performance": {
+            "title": "Geschwindigkeit vs. Speicher",
+            "description": "Niedrig nutzt nur die CPU und ist langsamer. Standard und Hoch nutzen bei Bedarf die GPU.",
+            "low": "Niedrig (nur CPU)",
+            "default": "Standard",
+            "high": "Hoch (mehr GPU)"
+          },
+          "advanced": {
+            "toggle": "Experteneinstellungen für lokales Modell"
+          },
+          "inference": {
+            "ctx": {
+              "title": "Kontextfenster (lokal)",
+              "description": "Maximale Tokens für Prompt plus Transkript. Standard 12288 reicht für etwa 15–20 Minuten Diktat plus Anweisungen. Bereich 2048–131072."
+            },
+            "maxTokens": {
+              "title": "Max. Antwort-Tokens (lokal)",
+              "description": "Optionale Obergrenze für generierte Tokens (wie Ollama num_predict). 0 = kein Limit (empfohlen für lange klinische Texte). Falls gesetzt: 1–131072."
+            },
+            "temperature": {
+              "title": "Temperatur (lokal)",
+              "description": "Niedrigere Werte = stabilere medizinische Formulierungen; höhere Werte = mehr Variation. Bereich 0–2. Standard 0,35."
+            },
+            "idleShutdown": {
+              "title": "Hilfe nach Leerlauf stoppen (Minuten)",
+              "description": "Nach Abschluss der Strukturierung den lokalen Modellserver nach so vielen Minuten beenden, um Arbeitsspeicher freizugeben. 0 = Server läuft weiter, bis Sie Modell, Leistung oder Kontext ändern. Maximum 720 (12 Stunden)."
+            }
+          },
+          "errors": {
+            "generic": "Problem bei lokaler Strukturierung: {{detail}}",
+            "model_not_downloaded": "Das gewählte On-Device-Modell ist noch nicht heruntergeladen. Liste öffnen und „Modell herunterladen“ wählen, oder eine andere Stufe.",
+            "configuration_error": "Konfigurationsfehler: {{detail}}",
+            "server_start_failed": "Das lokale Hilfsprogramm konnte nicht starten. {{detail}}",
+            "download_failed": "Modell-Download fehlgeschlagen. {{detail}}",
+            "insufficient_disk_space": "Zu wenig freier Speicherplatz. {{detail}}",
+            "inference_failed": "Das Modell hat keinen brauchbaren Text geliefert. {{detail}}"
+          }
+        },
+        "ollama": {
+          "numCtx": {
+            "title": "Ollama Kontext (num_ctx)",
+            "description": "Kontextfenster für die Strukturierung. Standard 12288 reicht für etwa 15–20 Minuten deutschsprachige Diktate inkl. Anweisungen. Zu kleine Werte können lange Konsultationen abschneiden; bei Bedarf 16384 oder 32768 wählen. Bereich 2048–131072. Wird nur genutzt, wenn die Basis-URL Ollamas Standardport (11434) verwendet."
+          },
+          "numPredict": {
+            "title": "Max. Antwort-Tokens (num_predict)",
+            "description": "Optionale Obergrenze für generierte Tokens. 0 = kein Limit (empfohlen für lange klinische Texte, damit die Ausgabe nicht abbricht). Falls gesetzt: 1–131072."
+          }
         }
       },
       "prompts": {
