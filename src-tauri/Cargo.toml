@@ -1,7 +1,7 @@
 [package]
 name = "anamedi"
 version = "0.7.1"
-description = "Anamedi Local"
+description = "Miccy"
 authors = [""]
 edition = "2021"
 license = "MIT"

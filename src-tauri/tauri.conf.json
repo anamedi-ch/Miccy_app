@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Anamedi Local",
+  "productName": "Miccy",
   "version": "0.7.1",
-  "identifier": "com.anamedi.desktop",
+  "identifier": "com.miccy.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Anamedi Local",
+        "title": "Miccy",
         "width": 680,
         "height": 570,
         "minWidth": 680,
@@ -42,7 +42,7 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "targets": "all",
-    "publisher": "Anamedi GmbH",
+    "publisher": "Miccy",
     "resources": [
       "resources/**/*"
     ],

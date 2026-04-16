@@ -191,8 +191,7 @@ pub async fn retry_history_entry_transcription(
     };
 
     let settings = crate::settings::get_settings(&app);
-    let processed =
-        process_transcription_result(&app, &settings, &transcription, &audio_samples).await;
+    let processed = process_transcription_result(&app, &settings, &transcription).await;
     history_manager
         .complete_transcription(
             id,

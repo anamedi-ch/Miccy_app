@@ -59,7 +59,7 @@
     },
     "permissions": {
       "title": "Требуются разрешения",
-      "description": "Anamedi Local требуются некоторые разрешения для корректной работы.",
+      "description": "<miccy>Miccy</miccy> требуются некоторые разрешения для корректной работы.",
       "microphone": {
         "title": "Доступ к микрофону",
         "description": "Необходим для прослушивания вашего голоса для транскрипции."
@@ -75,7 +75,7 @@
     }
   },
   "modelSelector": {
-    "welcome": "Добро пожаловать в Anamedi Local!",
+    "welcome": "Добро пожаловать в <miccy>Miccy</miccy>!",
     "downloadPrompt": "Загрузите модель ниже, чтобы начать транскрипцию.",
     "availableModels": "Доступные модели",
     "downloadModels": "Скачать модели",
@@ -101,7 +101,7 @@
     "general": {
       "title": "Общие",
       "shortcut": {
-        "title": "Ярлыки Handy",
+        "title": "Ярлыки <miccy>Miccy</miccy>",
         "description": "Настройте сочетания клавиш для запуска записи речи в текст",
         "loading": "Загрузка ярлыков...",
         "none": "Ярлыки не настроены",
@@ -178,7 +178,7 @@
       },
       "autostart": {
         "label": "Запуск при запуске",
-        "description": "Автоматически запускать Anamedi Local при входе в систему."
+        "description": "Автоматически запускать <miccy>Miccy</miccy> при входе в систему."
       },
       "overlay": {
         "title": "Позиция наложения",
@@ -316,7 +316,7 @@
       },
       "updateChecks": {
         "label": "Проверьте наличие обновлений",
-        "description": "Автоматически проверять наличие новых версий Anamedi Local"
+        "description": "Автоматически проверять наличие новых версий <miccy>Miccy</miccy>"
       },
       "soundTheme": {
         "label": "Звуковая тема",
@@ -365,17 +365,24 @@
         "appData": "Данные приложения:",
         "models": "Модели:",
         "settings": "Настройки:"
+      },
+      "keyboardImplementation": {
+        "optionTauri": "Tauri Global Shortcut",
+        "optionHandyKeys": "Miccy Keys",
+        "title": "Keyboard Implementation",
+        "description": "Choose the keyboard shortcut backend.",
+        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults"
       }
     },
     "about": {
       "title": "О программе",
       "version": {
         "title": "Версия",
-        "description": "Текущая версия Anamedi Local"
+        "description": "Текущая версия <miccy>Miccy</miccy>"
       },
       "appDataDirectory": {
         "title": "Каталог данных приложения",
-        "description": "Место, где Anamedi Local хранит свои данные"
+        "description": "Место, где <miccy>Miccy</miccy> хранит свои данные"
       },
       "sourceCode": {
         "title": "Исходный код",
@@ -384,7 +391,7 @@
       },
       "supportDevelopment": {
         "title": "Поддержка развития",
-        "description": "Помогите нам продолжить развитие Anamedi Local",
+        "description": "Помогите нам продолжить развитие <miccy>Miccy</miccy>",
         "button": "Пожертвовать"
       },
       "acknowledgments": {
@@ -392,7 +399,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "Высокопроизводительный вывод модели автоматического распознавания речи OpenAI Whisper",
-          "details": "Anamedi Local использует Whisper.cpp для быстрой локальной обработки речи в текст. Спасибо великолепной работе Георгия Герганова и его участников."
+          "details": "<miccy>Miccy</miccy> использует Whisper.cpp для быстрой локальной обработки речи в текст. Спасибо великолепной работе Георгия Герганова и его участников."
         }
       }
     }
@@ -409,7 +416,8 @@
     "downloading": "Загрузка... {{progress}} %",
     "installing": "Установка...",
     "preparing": "Подготовка...",
-    "checkForUpdates": "Проверьте наличие обновлений"
+    "checkForUpdates": "Проверьте наличие обновлений",
+    "openDownloadPage": "Скачать на сайте"
   },
   "common": {
     "loading": "Загрузка...",
@@ -435,7 +443,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Требуются разрешения на доступ",
-    "permissionsDescription": "Anamedi Local необходимы разрешения на доступ для ввода расшифрованного текста.",
+    "permissionsDescription": "<miccy>Miccy</miccy> необходимы разрешения на доступ для ввода расшифрованного текста.",
     "openSettings": "Открыть настройки системы",
     "dismiss": "Увольнять"
   },
@@ -444,9 +452,12 @@
   },
   "appLanguage": {
     "title": "Язык приложения",
-    "description": "Изменить язык интерфейса Anamedi Local"
+    "description": "Изменить язык интерфейса <miccy>Miccy</miccy>"
   },
   "overlay": {
     "transcribing": "Расшифровка..."
+  },
+  "brand": {
+    "logoAlt": "Miccy"
   }
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import type { ModelInfo } from "@/bindings";
 import { formatModelSize } from "../../lib/utils/format";
 import {
@@ -7,6 +7,7 @@ import {
   getTranslatedModelDescription,
 } from "../../lib/utils/modelTranslation";
 import { ProgressBar } from "../shared";
+import { miccyTransComponents } from "@/lib/miccy-trans-components";
 
 interface DownloadProgress {
   model_id: string;
@@ -71,7 +72,10 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
       {isFirstRun && (
         <div className="px-3 py-2 bg-logo-primary/10 border-b border-logo-primary/20">
           <div className="text-xs font-medium text-logo-primary mb-1">
-            {t("modelSelector.welcome")}
+            <Trans
+              i18nKey="modelSelector.welcome"
+              components={miccyTransComponents}
+            />
           </div>
           <div className="text-xs text-text/70">
             {t("modelSelector.downloadPrompt")}

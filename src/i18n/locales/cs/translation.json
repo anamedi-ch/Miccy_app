@@ -56,10 +56,30 @@
     "errors": {
       "loadModels": "Nepodařilo se načíst dostupné modely",
       "downloadModel": "Nepodařilo se stáhnout model: {{error}}"
+    },
+    "permissions": {
+      "title": "Vyžadována oprávnění",
+      "description": "<miccy>Miccy</miccy> potřebuje několik oprávnění, aby správně fungoval.",
+      "microphone": {
+        "title": "Přístup k mikrofonu",
+        "description": "Nutné pro zachycení hlasu k přepisu."
+      },
+      "accessibility": {
+        "title": "Přístup usnadnění",
+        "description": "Nutné pro zadávání přepsaného textu do aplikací."
+      },
+      "grant": "Udělit oprávnění",
+      "granted": "Uděleno",
+      "waiting": "Čekání...",
+      "allGranted": "Hotovo!",
+      "errors": {
+        "checkFailed": "Kontrola oprávnění se nezdařila. Zkuste to znovu.",
+        "requestFailed": "Žádost o oprávnění se nezdařila. Zkuste to znovu."
+      }
     }
   },
   "modelSelector": {
-    "welcome": "Vítejte v Anamedi Local!",
+    "welcome": "Vítejte v <miccy>Miccy</miccy>!",
     "downloadPrompt": "Pro zahájení přepisu si níže stáhněte model.",
     "availableModels": "Dostupné modely",
     "downloadModels": "Stáhnout modely",
@@ -85,7 +105,7 @@
     "general": {
       "title": "Obecné",
       "shortcut": {
-        "title": "Zkratky Anamedi Local",
+        "title": "Zkratky <miccy>Miccy</miccy>",
         "description": "Nastavte klávesové zkratky pro spuštění nahrávání řeči na text",
         "loading": "Načítám zkratky...",
         "none": "Žádné zkratky nejsou nastavené",
@@ -162,7 +182,7 @@
       },
       "autostart": {
         "label": "Spouštět při startu",
-        "description": "Automaticky spustit Anamedi Local po přihlášení do počítače."
+        "description": "Automaticky spustit <miccy>Miccy</miccy> po přihlášení do počítače."
       },
       "overlay": {
         "title": "Pozice překryvu",
@@ -300,7 +320,7 @@
       },
       "updateChecks": {
         "label": "Kontrolovat aktualizace",
-        "description": "Automaticky kontrolovat nové verze Anamedi Local"
+        "description": "Automaticky kontrolovat nové verze <miccy>Miccy</miccy>"
       },
       "soundTheme": {
         "label": "Zvukový motiv",
@@ -349,17 +369,24 @@
         "appData": "Data aplikace:",
         "models": "Modely:",
         "settings": "Nastavení:"
+      },
+      "keyboardImplementation": {
+        "optionTauri": "Tauri Global Shortcut",
+        "optionHandyKeys": "Miccy Keys",
+        "title": "Keyboard Implementation",
+        "description": "Choose the keyboard shortcut backend.",
+        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults"
       }
     },
     "about": {
       "title": "O aplikaci",
       "version": {
         "title": "Verze",
-        "description": "Aktuální verze Anamedi Local"
+        "description": "Aktuální verze <miccy>Miccy</miccy>"
       },
       "appDataDirectory": {
         "title": "Adresář dat aplikace",
-        "description": "Umístění, kde Anamedi Local ukládá data"
+        "description": "Umístění, kde <miccy>Miccy</miccy> ukládá data"
       },
       "sourceCode": {
         "title": "Zdrojový kód",
@@ -368,7 +395,7 @@
       },
       "supportDevelopment": {
         "title": "Podpořte vývoj",
-        "description": "Pomozte nám pokračovat ve vývoji Anamedi Local",
+        "description": "Pomozte nám pokračovat ve vývoji <miccy>Miccy</miccy>",
         "button": "Přispět"
       },
       "acknowledgments": {
@@ -376,7 +403,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "Vysoce výkonné inferenční zpracování modelu automatického rozpoznávání řeči Whisper od OpenAI",
-          "details": "Anamedi Local používá Whisper.cpp pro rychlé lokální zpracování řeči na text. Díky skvělé práci Georgiho Gerganova a přispěvatelů."
+          "details": "<miccy>Miccy</miccy> používá Whisper.cpp pro rychlé lokální zpracování řeči na text. Díky skvělé práci Georgiho Gerganova a přispěvatelů."
         }
       }
     }
@@ -393,7 +420,8 @@
     "downloading": "Stahování... {{progress}}%",
     "installing": "Instalace...",
     "preparing": "Příprava...",
-    "checkForUpdates": "Zkontrolovat aktualizace"
+    "checkForUpdates": "Zkontrolovat aktualizace",
+    "openDownloadPage": "Stáhnout na webu"
   },
   "common": {
     "loading": "Načítání...",
@@ -419,7 +447,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Vyžadována oprávnění usnadnění přístupu",
-    "permissionsDescription": "Anamedi Local potřebuje oprávnění usnadnění přístupu, aby mohlo psát přepsaný text.",
+    "permissionsDescription": "<miccy>Miccy</miccy> potřebuje oprávnění usnadnění přístupu, aby mohlo psát přepsaný text.",
     "openSettings": "Otevřít Nastavení systému",
     "dismiss": "Zavřít"
   },
@@ -428,9 +456,12 @@
   },
   "appLanguage": {
     "title": "Jazyk aplikace",
-    "description": "Změňte jazyk rozhraní Anamedi Local"
+    "description": "Změňte jazyk rozhraní <miccy>Miccy</miccy>"
   },
   "overlay": {
     "transcribing": "Přepisuji..."
+  },
+  "brand": {
+    "logoAlt": "Miccy"
   }
 }

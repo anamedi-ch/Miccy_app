@@ -196,7 +196,7 @@ export const LocalPrivatePostProcessingSection: React.FC<
         layout="stacked"
         grouped={true}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <ModelSelect
             value={model}
             options={modelOptionsForSelect}
@@ -208,7 +208,7 @@ export const LocalPrivatePostProcessingSection: React.FC<
             onSelect={onModelSelect}
             onCreate={onModelSelect}
             onBlur={() => {}}
-            className="flex-1 min-w-[380px]"
+            className="min-w-0 flex-1 max-w-full basis-[min(100%,22rem)]"
           />
           <ResetButton
             onClick={onRefreshModels}
@@ -267,7 +267,7 @@ export const LocalPrivatePostProcessingSection: React.FC<
             );
           }}
           disabled={isUpdating("post_process_local_performance")}
-          className="min-w-[240px]"
+          className="w-full min-w-0 max-w-full"
         />
       </SettingContainer>
 

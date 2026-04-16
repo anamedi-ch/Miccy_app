@@ -59,10 +59,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
   };
 
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
+    <div className={`relative min-w-0 max-w-full ${className}`} ref={dropdownRef}>
       <button
         type="button"
-        className={`min-h-[40px] px-3 py-2 text-sm font-medium bg-background border rounded-lg min-w-[200px] text-start flex items-center justify-between gap-2 transition-all duration-200 ${
+        className={`min-h-[40px] w-full min-w-0 max-w-full px-3 py-2 text-sm font-medium bg-background border rounded-lg text-start flex items-center justify-between gap-2 transition-all duration-200 ${
           disabled
             ? "opacity-50 cursor-not-allowed border-mid-gray/30"
             : isOpen

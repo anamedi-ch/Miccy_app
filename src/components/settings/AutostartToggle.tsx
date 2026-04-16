@@ -1,6 +1,7 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { ToggleSwitch } from "../ui/ToggleSwitch";
+import { miccyTransComponents } from "@/lib/miccy-trans-components";
 import { useSettings } from "../../hooks/useSettings";
 
 interface AutostartToggleProps {
@@ -21,7 +22,12 @@ export const AutostartToggle: React.FC<AutostartToggleProps> = React.memo(
         onChange={(enabled) => updateSetting("autostart_enabled", enabled)}
         isUpdating={isUpdating("autostart_enabled")}
         label={t("settings.advanced.autostart.label")}
-        description={t("settings.advanced.autostart.description")}
+        description={
+          <Trans
+            i18nKey="settings.advanced.autostart.description"
+            components={miccyTransComponents}
+          />
+        }
         descriptionMode={descriptionMode}
         grouped={grouped}
       />

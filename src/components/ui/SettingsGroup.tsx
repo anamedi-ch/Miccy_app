@@ -23,8 +23,10 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
           )}
         </div>
       )}
-      <div className="bg-background border border-mid-gray/15 rounded-xl overflow-visible shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <div className="divide-y divide-mid-gray/15">{children}</div>
+      <div className="bg-background border border-mid-gray/15 rounded-xl min-w-0 max-w-full shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="divide-y divide-mid-gray/15 min-w-0 max-w-full">
+          {children}
+        </div>
       </div>
     </div>
   );

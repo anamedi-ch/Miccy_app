@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Tooltip } from "./Tooltip";
 
 interface SettingContainerProps {
-  title: string;
-  description: string;
+  title: React.ReactNode;
+  description: React.ReactNode;
   children: React.ReactNode;
   descriptionMode?: "inline" | "tooltip";
   grouped?: boolean;
@@ -54,16 +54,16 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   if (layout === "stacked") {
     if (descriptionMode === "tooltip") {
       return (
-        <div className={containerClasses}>
-          <div className="flex items-center gap-2 mb-2">
+        <div className={`${containerClasses} min-w-0`}>
+          <div className="flex items-center gap-2 mb-2 min-w-0">
             <h3
-              className={`text-sm font-medium ${disabled ? "opacity-50" : ""}`}
+              className={`text-sm font-medium min-w-0 flex-1 truncate ${disabled ? "opacity-50" : ""}`}
             >
               {title}
             </h3>
             <div
               ref={tooltipRef}
-              className="relative"
+              className="relative shrink-0"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
               onClick={toggleTooltip}
@@ -99,13 +99,13 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
               )}
             </div>
           </div>
-          <div className="w-full">{children}</div>
+          <div className="w-full min-w-0 max-w-full">{children}</div>
         </div>
       );
     }
 
     return (
-      <div className={containerClasses}>
+      <div className={`${containerClasses} min-w-0`}>
         <div className="mb-2">
           <h3 className={`text-sm font-medium ${disabled ? "opacity-50" : ""}`}>
             {title}
@@ -114,29 +114,30 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
             {description}
           </p>
         </div>
-        <div className="w-full">{children}</div>
+        <div className="w-full min-w-0 max-w-full">{children}</div>
       </div>
     );
   }
 
-  // Horizontal layout (default)
+  // Horizontal layout (default): min-w-0 + flex-1 on the control side prevents
+  // dropdowns and long labels from overflowing the settings card.
   const horizontalContainerClasses = grouped
-    ? "flex items-center justify-between px-4 p-2"
-    : "flex items-center justify-between px-4 p-2 rounded-lg border border-mid-gray/20";
+    ? "flex items-center gap-3 px-4 p-2 min-w-0"
+    : "flex items-center gap-3 px-4 p-2 rounded-lg border border-mid-gray/20 min-w-0";
 
   if (descriptionMode === "tooltip") {
     return (
       <div className={horizontalContainerClasses}>
-        <div className="max-w-2/3">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 shrink-0 max-w-[50%] pe-1">
+          <div className="flex items-center gap-2 min-w-0">
             <h3
-              className={`text-sm font-medium ${disabled ? "opacity-50" : ""}`}
+              className={`text-sm font-medium min-w-0 flex-1 truncate ${disabled ? "opacity-50" : ""}`}
             >
               {title}
             </h3>
             <div
               ref={tooltipRef}
-              className="relative"
+              className="relative shrink-0"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
               onClick={toggleTooltip}
@@ -173,22 +174,30 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
             </div>
           </div>
         </div>
-        <div className="relative">{children}</div>
+        <div className="relative min-w-0 flex-1 flex justify-end items-center ps-1">
+          <div className="min-w-0 w-full max-w-full">{children}</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={horizontalContainerClasses}>
-      <div className="max-w-2/3">
-        <h3 className={`text-sm font-medium ${disabled ? "opacity-50" : ""}`}>
+      <div className="min-w-0 shrink-0 max-w-[50%] pe-1">
+        <h3
+          className={`text-sm font-medium truncate ${disabled ? "opacity-50" : ""}`}
+        >
           {title}
         </h3>
-        <p className={`text-sm ${disabled ? "opacity-50" : ""}`}>
+        <p
+          className={`text-sm line-clamp-3 break-words ${disabled ? "opacity-50" : ""}`}
+        >
           {description}
         </p>
       </div>
-      <div className="relative">{children}</div>
+      <div className="relative min-w-0 flex-1 flex justify-end items-center ps-1">
+        <div className="min-w-0 w-full max-w-full">{children}</div>
+      </div>
     </div>
   );
 };

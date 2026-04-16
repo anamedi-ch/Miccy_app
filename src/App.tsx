@@ -10,14 +10,17 @@ import {
 import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import Footer from "./components/footer";
-import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
+import Onboarding, {
+  AccessibilityOnboarding,
+  StructuringOnboarding,
+} from "./components/onboarding";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
-type OnboardingStep = "accessibility" | "model" | "done";
+type OnboardingStep = "accessibility" | "model" | "structuring" | "done";
 
 const renderSettingsContent = (section: SidebarSection) => {
   const ActiveComponent =
@@ -159,8 +162,11 @@ function App() {
     setOnboardingStep(isReturningUser ? "done" : "model");
   };
 
-  const handleModelSelected = () => {
-    // Transition to main app - user has started a download
+  const handleSpeechModelDownloadStarted = () => {
+    setOnboardingStep("structuring");
+  };
+
+  const handleStructuringOnboardingComplete = () => {
     setOnboardingStep("done");
   };
 
@@ -174,13 +180,23 @@ function App() {
   }
 
   if (onboardingStep === "model") {
-    return <Onboarding onModelSelected={handleModelSelected} />;
+    return (
+      <Onboarding onSpeechModelDownloadStarted={handleSpeechModelDownloadStarted} />
+    );
+  }
+
+  if (onboardingStep === "structuring") {
+    return (
+      <StructuringOnboarding
+        onComplete={handleStructuringOnboardingComplete}
+      />
+    );
   }
 
   return (
     <div
       dir={direction}
-      className="h-screen flex flex-col select-none cursor-default"
+      className="h-screen flex flex-col select-none cursor-default bg-background"
     >
       <Toaster
         theme="system"
@@ -195,15 +211,15 @@ function App() {
         }}
       />
       {/* Main content area that takes remaining space */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex min-w-0 overflow-hidden">
         <Sidebar
           activeSection={currentSection}
           onSectionChange={setCurrentSection}
         />
         {/* Scrollable content area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            <div className="flex flex-col items-center p-4 gap-4">
+        <div className="flex-1 flex min-w-0 flex-col overflow-hidden">
+          <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+            <div className="flex flex-col items-center p-4 gap-4 min-w-0 w-full max-w-full">
               <AccessibilityPermissions />
               {renderSettingsContent(currentSection)}
             </div>

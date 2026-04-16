@@ -59,7 +59,7 @@
     },
     "permissions": {
       "title": "権限が必要です",
-      "description": "Handyが正常に動作するにはいくつかの権限が必要です。",
+      "description": "<miccy>Miccy</miccy>が正常に動作するにはいくつかの権限が必要です。",
       "microphone": {
         "title": "マイクへのアクセス",
         "description": "文字起こしのためにあなたの声を聞くために必要です。"
@@ -75,7 +75,7 @@
     }
   },
   "modelSelector": {
-    "welcome": "Handyへようこそ！",
+    "welcome": "<miccy>Miccy</miccy>へようこそ！",
     "downloadPrompt": "文字起こしを開始するには、下からモデルをダウンロードしてください。",
     "availableModels": "利用可能なモデル",
     "downloadModels": "モデルをダウンロード",
@@ -101,7 +101,7 @@
     "general": {
       "title": "一般",
       "shortcut": {
-        "title": "Handyショートカット",
+        "title": "<miccy>Miccy</miccy>ショートカット",
         "description": "音声録音を開始するキーボードショートカットを設定",
         "loading": "ショートカットを読み込み中...",
         "none": "ショートカットが設定されていません",
@@ -178,7 +178,7 @@
       },
       "autostart": {
         "label": "起動時に実行",
-        "description": "コンピューターにログインしたときにHandyを自動的に起動。"
+        "description": "コンピューターにログインしたときに<miccy>Miccy</miccy>を自動的に起動。"
       },
       "overlay": {
         "title": "オーバーレイ位置",
@@ -316,7 +316,7 @@
       },
       "updateChecks": {
         "label": "アップデートを確認",
-        "description": "Handyの新しいバージョンを自動的にチェック"
+        "description": "<miccy>Miccy</miccy>の新しいバージョンを自動的にチェック"
       },
       "soundTheme": {
         "label": "サウンドテーマ",
@@ -365,17 +365,24 @@
         "appData": "アプリデータ:",
         "models": "モデル:",
         "settings": "設定:"
+      },
+      "keyboardImplementation": {
+        "optionTauri": "Tauri Global Shortcut",
+        "optionHandyKeys": "Miccy Keys",
+        "title": "Keyboard Implementation",
+        "description": "Choose the keyboard shortcut backend.",
+        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults"
       }
     },
     "about": {
       "title": "概要",
       "version": {
         "title": "バージョン",
-        "description": "Handyの現在のバージョン"
+        "description": "<miccy>Miccy</miccy>の現在のバージョン"
       },
       "appDataDirectory": {
         "title": "アプリデータディレクトリ",
-        "description": "Handyがデータを保存する場所"
+        "description": "<miccy>Miccy</miccy>がデータを保存する場所"
       },
       "sourceCode": {
         "title": "ソースコード",
@@ -384,7 +391,7 @@
       },
       "supportDevelopment": {
         "title": "開発を支援",
-        "description": "Handyの開発を支援してください",
+        "description": "<miccy>Miccy</miccy>の開発を支援してください",
         "button": "寄付する"
       },
       "acknowledgments": {
@@ -392,7 +399,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "OpenAIのWhisper自動音声認識モデルの高性能推論",
-          "details": "Handyは高速でローカルな音声からテキストへの変換にWhisper.cppを使用しています。Georgi Gerganov氏と貢献者の皆様の素晴らしい仕事に感謝します。"
+          "details": "<miccy>Miccy</miccy>は高速でローカルな音声からテキストへの変換にWhisper.cppを使用しています。Georgi Gerganov氏と貢献者の皆様の素晴らしい仕事に感謝します。"
         }
       }
     }
@@ -409,7 +416,8 @@
     "downloading": "ダウンロード中... {{progress}}%",
     "installing": "インストール中...",
     "preparing": "準備中...",
-    "checkForUpdates": "アップデートを確認"
+    "checkForUpdates": "アップデートを確認",
+    "openDownloadPage": "サイトからダウンロード"
   },
   "common": {
     "loading": "読み込み中...",
@@ -435,7 +443,7 @@
   },
   "accessibility": {
     "permissionsRequired": "アクセシビリティ権限が必要です",
-    "permissionsDescription": "Handyが文字起こしテキストを入力するには、アクセシビリティ権限が必要です。",
+    "permissionsDescription": "<miccy>Miccy</miccy>が文字起こしテキストを入力するには、アクセシビリティ権限が必要です。",
     "openSettings": "システム設定を開く",
     "dismiss": "閉じる"
   },
@@ -444,9 +452,12 @@
   },
   "appLanguage": {
     "title": "アプリケーション言語",
-    "description": "Handyインターフェースの言語を変更"
+    "description": "<miccy>Miccy</miccy>インターフェースの言語を変更"
   },
   "overlay": {
     "transcribing": "文字起こし中..."
+  },
+  "brand": {
+    "logoAlt": "Miccy"
   }
 }

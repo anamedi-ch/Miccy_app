@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import {
   checkAccessibilityPermission,
   requestAccessibilityPermission,
 } from "tauri-plugin-macos-permissions-api";
+import { miccyTransComponents } from "@/lib/miccy-trans-components";
 
 // Define permission state type
 type PermissionState = "request" | "verify" | "granted";
@@ -82,7 +83,10 @@ const AccessibilityPermissions: React.FC = () => {
       <div className="flex justify-between items-center gap-2">
         <div className="">
           <p className="text-sm font-medium">
-            {t("accessibility.permissionsDescription")}
+            <Trans
+              i18nKey="accessibility.permissionsDescription"
+              components={miccyTransComponents}
+            />
           </p>
         </div>
         <button

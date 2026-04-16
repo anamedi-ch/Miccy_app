@@ -23,6 +23,6 @@ jobs:
       target: ${{ matrix.target }}
       build-args: ${{ matrix.args }}
       sign-binaries: true
-      asset-prefix: "anamedi-msstore"
+      asset-prefix: "miccy-msstore"
       upload-artifacts: true
     secrets: inherit

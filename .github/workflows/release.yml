@@ -78,7 +78,7 @@ jobs:
       target: ${{ matrix.target }}
       build-args: ${{ matrix.args }}
       sign-binaries: ${{ matrix.sign != false }}
-      asset-prefix: "anamedi"
+      asset-prefix: "miccy"
       upload-artifacts: false
       release-id: ${{ needs.create-release.outputs.release-id }}
     secrets: inherit

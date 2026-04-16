@@ -59,7 +59,7 @@
     },
     "permissions": {
       "title": "Потрібні дозволи",
-      "description": "Handy потребує деяких дозволів для коректної роботи.",
+      "description": "<miccy>Miccy</miccy> потребує деяких дозволів для коректної роботи.",
       "microphone": {
         "title": "Доступ до мікрофона",
         "description": "Потрібен для прослуховування вашого голосу для транскрипції."
@@ -75,7 +75,7 @@
     }
   },
   "modelSelector": {
-    "welcome": "Ласкаво просимо до Handy!",
+    "welcome": "Ласкаво просимо до <miccy>Miccy</miccy>!",
     "downloadPrompt": "Завантажте модель нижче, щоб почати транскрипцію.",
     "availableModels": "Доступні моделі",
     "downloadModels": "Завантажити моделі",
@@ -178,7 +178,7 @@
       },
       "autostart": {
         "label": "Запуск при старті системи",
-        "description": "Автоматично запускати Handy при вході в систему"
+        "description": "Автоматично запускати <miccy>Miccy</miccy> при вході в систему"
       },
       "overlay": {
         "title": "Позиція оверлею",
@@ -316,7 +316,7 @@
       },
       "updateChecks": {
         "label": "Перевірка оновлень",
-        "description": "Автоматично перевіряти наявність нових версій Handy"
+        "description": "Автоматично перевіряти наявність нових версій <miccy>Miccy</miccy>"
       },
       "soundTheme": {
         "label": "Звукова тема",
@@ -365,17 +365,24 @@
         "appData": "Дані програми:",
         "models": "Моделі:",
         "settings": "Налаштування:"
+      },
+      "keyboardImplementation": {
+        "optionTauri": "Tauri Global Shortcut",
+        "optionHandyKeys": "Miccy Keys",
+        "title": "Keyboard Implementation",
+        "description": "Choose the keyboard shortcut backend.",
+        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults"
       }
     },
     "about": {
       "title": "Інфо",
       "version": {
         "title": "Версія",
-        "description": "Поточна версія Handy"
+        "description": "Поточна версія <miccy>Miccy</miccy>"
       },
       "appDataDirectory": {
         "title": "Папка даних програми",
-        "description": "Розташування даних Handy"
+        "description": "Розташування даних <miccy>Miccy</miccy>"
       },
       "sourceCode": {
         "title": "Вихідний код",
@@ -384,7 +391,7 @@
       },
       "supportDevelopment": {
         "title": "Підтримати розробку",
-        "description": "Допоможіть нам продовжувати розвивати Handy",
+        "description": "Допоможіть нам продовжувати розвивати <miccy>Miccy</miccy>",
         "button": "Підтримати"
       },
       "acknowledgments": {
@@ -392,7 +399,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "Високопродуктивний інференс моделі автоматичного розпізнавання мовлення Whisper від OpenAI",
-          "details": "Handy використовує Whisper.cpp для швидкої локальної обробки мовлення в текст. Дякуємо за чудову роботу Георгію Герганову та контриб'юторам."
+          "details": "<miccy>Miccy</miccy> використовує Whisper.cpp для швидкої локальної обробки мовлення в текст. Дякуємо за чудову роботу Георгію Герганову та контриб'юторам."
         }
       }
     }
@@ -409,7 +416,8 @@
     "downloading": "Завантаження... {{progress}}%",
     "installing": "Встановлення...",
     "preparing": "Підготовка...",
-    "checkForUpdates": "Перевірити оновлення"
+    "checkForUpdates": "Перевірити оновлення",
+    "openDownloadPage": "Завантажити з сайту"
   },
   "common": {
     "loading": "Завантаження...",
@@ -435,7 +443,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Потрібні права доступу",
-    "permissionsDescription": "Handy потребує дозволи доступності для введення транскрибованого тексту.",
+    "permissionsDescription": "<miccy>Miccy</miccy> потребує дозволи доступності для введення транскрибованого тексту.",
     "openSettings": "Відкрити Системні налаштування",
     "dismiss": "Закрити"
   },
@@ -444,9 +452,12 @@
   },
   "appLanguage": {
     "title": "Мова інтерфейсу",
-    "description": "Змінити мову інтерфейсу Handy"
+    "description": "Змінити мову інтерфейсу <miccy>Miccy</miccy>"
   },
   "overlay": {
     "transcribing": "Обробка..."
+  },
+  "brand": {
+    "logoAlt": "Miccy"
   }
 }

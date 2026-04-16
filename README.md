@@ -1,6 +1,6 @@
-# Anamedi Local
+# Miccy
 
-Offline speech-to-text for healthcare professionals. Press a shortcut, speak, and have your words transcribed locally. Runs on macOS, Windows, and Linux. Optional Anamedi Cloud features for doctors. Open source (MIT).
+Offline speech-to-text for healthcare professionals. Press a shortcut, speak, and have your words transcribed locally. Runs on macOS, Windows, and Linux. Open source (MIT).
 
 ## Languages
 
@@ -20,7 +20,7 @@ Free code signing provided by SignPath.io, certificate by SignPath Foundation.
 - **Reviewers:** [jempf](https://github.com/jempf)
 - **Approvers:** [jempf](https://github.com/jempf)
 
-**Privacy policy:** The app runs fully offline by default. Doctors may optionally use Anamedi Cloud; when enabled, data is transferred to Anamedi’s cloud services. Cloud features are opt-in and can be disabled at any time.
+**Privacy policy:** Speech recognition and optional post-processing are designed to run on your machine; model downloads and app updates use the network as needed.
 
 ## License
 

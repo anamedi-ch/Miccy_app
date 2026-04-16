@@ -1,8 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Cog, FlaskConical, History, Info, Sparkles } from "lucide-react";
-import AnamediLogoSvg from "@/assets/icons/anamedi-logo.svg";
-import AnamediLogo from "./icons/AnamediLogo";
+import miccyLogoUrl from "@/assets/miccy-logo.png";
+import { MiccyAppIcon } from "./branding/MiccyAppIcon";
 import { useSettings } from "../hooks/useSettings";
 import {
   GeneralSettings,
@@ -33,7 +33,7 @@ interface SectionConfig {
 export const SECTIONS_CONFIG = {
   general: {
     labelKey: "sidebar.general",
-    icon: AnamediLogo,
+    icon: MiccyAppIcon,
     component: GeneralSettings,
     enabled: () => true,
   },
@@ -86,13 +86,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     .map(([id, config]) => ({ id: id as SidebarSection, ...config }));
 
   return (
-    <div className="flex flex-col w-40 h-full border-e border-mid-gray/20 items-center px-2">
+    <div className="flex flex-col w-[11.5rem] min-w-[11.5rem] max-w-[11.5rem] h-full border-e border-mid-gray/20 items-center px-1.5">
       <img
-          src={AnamediLogoSvg}
-          alt="Anamedi Local"
-          width={120}
-          className="m-4 object-contain"
-        />
+        src={miccyLogoUrl}
+        alt={t("brand.logoAlt")}
+        width={120}
+        className="m-4 object-contain"
+      />
       <div className="flex flex-col w-full items-center gap-1 pt-2 border-t border-mid-gray/20">
         {availableSections.map((section) => {
           const Icon = section.icon;
@@ -110,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <Icon width={24} height={24} className="shrink-0" />
               <p
-                className="text-sm font-medium truncate"
+                className="text-xs font-medium text-center leading-snug line-clamp-2 break-words"
                 title={t(section.labelKey)}
               >
                 {t(section.labelKey)}

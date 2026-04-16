@@ -59,7 +59,7 @@
     },
     "permissions": {
       "title": "Permessi Richiesti",
-      "description": "Anamedi Local ha bisogno di alcuni permessi per funzionare correttamente.",
+      "description": "<miccy>Miccy</miccy> ha bisogno di alcuni permessi per funzionare correttamente.",
       "microphone": {
         "title": "Accesso al Microfono",
         "description": "Necessario per sentire la tua voce per la trascrizione."
@@ -75,7 +75,7 @@
     }
   },
   "modelSelector": {
-    "welcome": "Benvenuto in Anamedi Local!",
+    "welcome": "Benvenuto in <miccy>Miccy</miccy>!",
     "downloadPrompt": "Scarica un modello per cominciare a trascrivere.",
     "availableModels": "Modelli Disponibili",
     "downloadModels": "Scarica Modelli",
@@ -101,7 +101,7 @@
     "general": {
       "title": "Generale",
       "shortcut": {
-        "title": "Scorciatoie di Handy",
+        "title": "Scorciatoie di <miccy>Miccy</miccy>",
         "description": "Configura le scorciatoie per attivare la trascrizione vocale",
         "loading": "Caricamento delle scorciatoie...",
         "none": "Nessuna scorciatoia configurata",
@@ -178,7 +178,7 @@
       },
       "autostart": {
         "label": "Avvia all'Accensione",
-        "description": "Avvia Anamedi Local automaticamente quando accedi al computer."
+        "description": "Avvia <miccy>Miccy</miccy> automaticamente quando accedi al computer."
       },
       "overlay": {
         "title": "Posizione della Sovrimpressione",
@@ -316,7 +316,7 @@
       },
       "updateChecks": {
         "label": "Controlla aggiornamenti",
-        "description": "Controlla automaticamente la disponibilità di nuove versioni di Anamedi Local"
+        "description": "Controlla automaticamente la disponibilità di nuove versioni di <miccy>Miccy</miccy>"
       },
       "soundTheme": {
         "label": "Tema Sonoro",
@@ -365,17 +365,24 @@
         "appData": "Dati App:",
         "models": "Modelli:",
         "settings": "Impostazioni:"
+      },
+      "keyboardImplementation": {
+        "optionTauri": "Tauri Global Shortcut",
+        "optionHandyKeys": "Miccy Keys",
+        "title": "Keyboard Implementation",
+        "description": "Choose the keyboard shortcut backend.",
+        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults"
       }
     },
     "about": {
       "title": "Informazioni",
       "version": {
         "title": "Versione",
-        "description": "Versione attuale di Anamedi Local"
+        "description": "Versione attuale di <miccy>Miccy</miccy>"
       },
       "appDataDirectory": {
         "title": "Cartella Dati App",
-        "description": "Cartella in cui Anamedi Local salva i dati"
+        "description": "Cartella in cui <miccy>Miccy</miccy> salva i dati"
       },
       "sourceCode": {
         "title": "Codice Sorgente",
@@ -384,7 +391,7 @@
       },
       "supportDevelopment": {
         "title": "Supporta lo Sviluppo",
-        "description": "Aiutaci a sviluppare Anamedi Local",
+        "description": "Aiutaci a sviluppare <miccy>Miccy</miccy>",
         "button": "Dona"
       },
       "acknowledgments": {
@@ -392,7 +399,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "Inferenza ad alte prestazioni del modello di riconoscimento vocale automatico Whisper di OpenAI",
-          "details": "Anamedi Local usa Whisper.cpp per il riconoscimento vocale veloce in locale. Grazie a Georgi Gerganov e collaboratori per il fantastico lavoro."
+          "details": "<miccy>Miccy</miccy> usa Whisper.cpp per il riconoscimento vocale veloce in locale. Grazie a Georgi Gerganov e collaboratori per il fantastico lavoro."
         }
       }
     }
@@ -409,7 +416,8 @@
     "downloading": "Download... {{progress}}%",
     "installing": "Installazione...",
     "preparing": "Preparazione...",
-    "checkForUpdates": "Controlla aggiornamenti"
+    "checkForUpdates": "Controlla aggiornamenti",
+    "openDownloadPage": "Scarica dal sito"
   },
   "common": {
     "loading": "Caricamento...",
@@ -435,7 +443,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Richiesti Permessi di Accessibilità",
-    "permissionsDescription": "Anamedi Local ha bisogno dei permessi di accessibilità per digitare il testo trascritto.",
+    "permissionsDescription": "<miccy>Miccy</miccy> ha bisogno dei permessi di accessibilità per digitare il testo trascritto.",
     "openSettings": "Apri Impostazioni di Sistema",
     "dismiss": "Ignora"
   },
@@ -444,9 +452,12 @@
   },
   "appLanguage": {
     "title": "Lingua Applicazione",
-    "description": "Cambia la lingua dell'interfaccia di Anamedi Local"
+    "description": "Cambia la lingua dell'interfaccia di <miccy>Miccy</miccy>"
   },
   "overlay": {
     "transcribing": "Trascrizione..."
+  },
+  "brand": {
+    "logoAlt": "Miccy"
   }
 }

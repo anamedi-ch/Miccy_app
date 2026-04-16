@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { SettingContainer } from "../ui/SettingContainer";
 import { PathDisplay } from "../ui/PathDisplay";
+import { miccyTransComponents } from "@/lib/miccy-trans-components";
 
 interface AppDataDirectoryProps {
   descriptionMode?: "tooltip" | "inline";
@@ -70,7 +71,12 @@ export const AppDataDirectory: React.FC<AppDataDirectoryProps> = ({
   return (
     <SettingContainer
       title={t("settings.about.appDataDirectory.title")}
-      description={t("settings.about.appDataDirectory.description")}
+      description={
+        <Trans
+          i18nKey="settings.about.appDataDirectory.description"
+          components={miccyTransComponents}
+        />
+      }
       descriptionMode={descriptionMode}
       grouped={grouped}
       layout="stacked"

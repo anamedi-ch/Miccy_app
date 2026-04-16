@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 @theme {
+  --font-miccy: "Luckiest Guy", "Comic Sans MS", cursive, system-ui, sans-serif;
   --color-text: #0f0f0f;
-  --color-background: #fbfbfb;
+  --color-background: #f9f7f2;
   --color-background-ui: #17422c;
   --color-logo-primary: #17422c;
   --color-logo-stroke: #382731;
@@ -18,7 +19,7 @@
 
   /* Colors - Light Theme */
   /* --color-text: #0f0f0f;
-  --color-background: #fbfbfb;
+  --color-background: #f9f7f2;
   --color-logo-primary: #FAA2CA;
   --color-logo-stroke: #382731;
   --color-text-stroke: #f6f6f6; */

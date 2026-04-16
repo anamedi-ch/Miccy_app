@@ -447,13 +447,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             allow_base_url_edit: true,
             models_endpoint: Some("/models".to_string()),
         },
-        PostProcessProvider {
-            id: "anamedi".to_string(),
-            label: "Anamedi Cloud".to_string(),
-            base_url: "https://app.anamedi.com".to_string(),
-            allow_base_url_edit: false,
-            models_endpoint: None,
-        },
     ]
 }
 
@@ -564,9 +557,48 @@ pub fn clamp_local_post_process_idle_shutdown_minutes(raw: u32) -> u32 {
 fn default_post_process_prompts() -> Vec<LLMPrompt> {
     vec![
         LLMPrompt {
+            id: "improve_transcript_en".to_string(),
+            name: "Improve Transcript".to_string(),
+            description: Some(
+                "Cleans up grammar and obvious recognition errors; meaning unchanged.".to_string(),
+            ),
+            prompt: r#"Rewrite in clear standard English. Keep meaning and facts exactly the same. Fix grammar, spelling, filler words, and obvious speech-recognition mistakes. Do not summarize, add headings, JSON, or commentary.
+
+Transcript:
+${output}"#
+                .to_string(),
+        },
+        LLMPrompt {
+            id: "summary_bullets_en".to_string(),
+            name: "Structured summary (bullet points)".to_string(),
+            description: Some("Concise bullet-point summary of the transcript.".to_string()),
+            prompt: r#"Output concise English bullet points (each line starts with "- "). Only use content from the transcript: key facts, decisions, findings, next steps, open questions. No introduction, no JSON.
+
+Transcript:
+${output}"#
+                .to_string(),
+        },
+        LLMPrompt {
+            id: "soap_en".to_string(),
+            name: "SOAP (EN)".to_string(),
+            description: Some(
+                "Clinical note: Subjective, Objective, Assessment, Plan.".to_string(),
+            ),
+            prompt: r#"Clinical SOAP note from the encounter. Exactly four sections with a plain heading (no colon), then compact lines using "• ". Separate sections with a blank line: Subjective, Objective, Assessment, Plan.
+
+Only explicitly stated information; use clinical terminology where appropriate; otherwise use "• Not stated". No overall title, no JSON.
+
+Transcript:
+${output}"#
+                .to_string(),
+        },
+        LLMPrompt {
             id: "transcript_improve".to_string(),
             name: "Transkript verbessern".to_string(),
-            description: Some("Verbessert ein Transkript in standardsprachlichem Deutsch ohne inhaltliche Änderungen".to_string()),
+            description: Some(
+                "Verbessert ein Transkript in standardsprachlichem Deutsch ohne inhaltliche Änderungen."
+                    .to_string(),
+            ),
             prompt: r#"Überarbeiten Sie in klarem Standarddeutsch: Sinn und fachliche Aussage unverändert; Grammatik, Orthographie, Dialekt/Umgangssprache→Standardsprache; offensichtliche Transkriptionsfehler korrigieren. Keine Zusammenfassung, keine Überschriften, kein JSON, kein Kommentar.
 
 Transkript:
@@ -575,8 +607,10 @@ ${output}"#
         },
         LLMPrompt {
             id: "transcript_summarize".to_string(),
-            name: "Transkript zusammenfassen (Stichpunkte)".to_string(),
-            description: Some("Fasst ein Transkript in klaren deutschen Stichpunkten zusammen".to_string()),
+            name: "Zusammenfassung (Stichpunkte)".to_string(),
+            description: Some(
+                "Kompakte deutsche Stichpunkte zum Inhalt des Transkripts.".to_string(),
+            ),
             prompt: r#"Kompakte deutsche Stichpunkte (je Zeile ein "- "). Nur Inhalte aus dem Transkript: Wesentliches, Entscheidungen, Befunde, nächste Schritte, offene Punkte. Keine Einleitung, kein JSON.
 
 Transkript:
@@ -586,55 +620,13 @@ ${output}"#
         LLMPrompt {
             id: "soap".to_string(),
             name: "SOAP (DE)".to_string(),
-            description: Some("Standard medical documentation (Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere)".to_string()),
+            description: Some(
+                "Dokumentation: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere."
+                    .to_string(),
+            ),
             prompt: r#"SOAP aus hausärztlichem Gespräch. Genau fünf Abschnitte, Überschrift ohne Doppelpunkt, darunter nur kompakte Zeilen mit "• ". Abschnitte mit Leerzeile trennen: Subjektiv, Objektiv, Untersuchung, Beurteilung, Procedere.
 
 Nur explizit Genanntes; medizinische Terminologie; sonst "• Keine Angaben". Kein Gesamttitel, kein JSON.
-
-Transkript:
-${output}"#
-                .to_string(),
-        },
-        LLMPrompt {
-            id: "psychology".to_string(),
-            name: "Psychology".to_string(),
-            description: Some("Psychotherapeutic narrative report (psychopathologischer Befund, Anamnese, Behandlungsplan)".to_string()),
-            prompt: r#"Knapper narrativer psychologischer Befund. Nur Abschnitte mit Inhalt; je Abschnitt Überschrift, dann 1–3 kurze Absätze (vollständige Sätze, keine Bullets). Mögliche Überschriften: Psychopathologischer Befund, Grund der Therapie, Anamnese, Arbeit/Beziehungen, Ziele, Behandlungsplan. Nur Transkriptinhalte, keine Wiederholungen, kein JSON.
-
-Transkript:
-${output}"#
-                .to_string(),
-        },
-        LLMPrompt {
-            id: "soap_special".to_string(),
-            name: "SOAP Special".to_string(),
-            description: Some("SOAP with lifestyle & anamnesis focus (Ernährung, Schlaf, Sport, Alkohol, Medikation)".to_string()),
-            prompt: r#"Wie SOAP (DE), plus Lifestyle-Themen dem passenden Abschnitt zuordnen (Ernährung, Alkohol, Medikation/Supplements, Schlaf, Sport, Soziales/Familie → meist Beurteilung). Mehrere Themen im selben Satz splitten. Fünf Abschnitte mit "• "-Zeilen wie bei SOAP (DE). Nur Gesprächsinhalte.
-
-Transkript:
-${output}"#
-                .to_string(),
-        },
-        LLMPrompt {
-            id: "soap_problems".to_string(),
-            name: "SOAP Problems".to_string(),
-            description: Some("Problem-oriented documentation with 41 standardized categories (Swiss GP)".to_string()),
-            prompt: r#"Problemorientiert (Schweizer Hausarzt): 2–6 Probleme; pro Problem kurzer Titel/Kategorie wenn ableitbar (z. B. K85 Hypertonie). Pro Problem: Subjektiv, Objektiv, Beurteilung, Procedere — nur knappe "• "-Zeilen. Unklares unter "unassigned". Schwiizerdütsch→korrektes Deutsch. Kein Halluzinieren, kein JSON.
-
-Format:
-Problem 1: …
-Subjektiv
-• …
-
-Transkript:
-${output}"#
-                .to_string(),
-        },
-        LLMPrompt {
-            id: "soap_nephrology".to_string(),
-            name: "SOAP Nephrology".to_string(),
-            description: Some("SOAP with kidney focus and systematic physical exam (top-down: Kopf → Thorax → Abdomen → Genital → Extremitäten)".to_string()),
-            prompt: r#"SOAP (DE) mit nephrologischem Fokus: Flüssigkeit/Ödeme, Vitale, Labs nur wenn genannt. Untersuchung: falls erwähnt, eine kompakte top-down "• "-Liste (Kopf/Hals → Thorax → Abdomen → Genital/DRU → Extremitäten). Diagnosen präzise benennen wenn im Transkript angelegt. Sonst "• Keine Angaben". Kein JSON.
 
 Transkript:
 ${output}"#
@@ -653,7 +645,7 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         .map(|provider| provider.id.clone())
         .collect();
 
-    // Prune any legacy providers that are no longer allowed (e.g., OpenAI, Anthropic, etc.)
+    // Prune any legacy providers that are no longer shipped (remote APIs, removed cloud tiers, etc.)
     let original_providers_len = settings.post_process_providers.len();
     settings
         .post_process_providers
@@ -728,9 +720,25 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         }
     }
 
+    let default_prompts = default_post_process_prompts();
+
+    // Drop specialty prompts we no longer ship (user custom prompts use ids like "prompt_…").
+    const LEGACY_SHIPPED_PROMPT_IDS: &[&str] = &[
+        "psychology",
+        "soap_special",
+        "soap_problems",
+        "soap_nephrology",
+    ];
+    let before_prune = settings.post_process_prompts.len();
+    settings
+        .post_process_prompts
+        .retain(|p| !LEGACY_SHIPPED_PROMPT_IDS.contains(&p.id.as_str()));
+    if settings.post_process_prompts.len() != before_prune {
+        changed = true;
+    }
+
     // One-time migration: update legacy soap_json_de to new soap prompt BEFORE adding defaults
     // (avoids ending up with both soap and soap_json_de)
-    let default_prompts = default_post_process_prompts();
     if let Some(existing) = settings.post_process_prompts.iter_mut().find(|prompt| {
         prompt.id == "improve_transcription"
             || prompt.id == "improve_transcript"
@@ -804,7 +812,12 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     settings.post_process_prompts.retain(|p| {
         if matches!(
             p.id.as_str(),
-            "transcript_improve" | "transcript_summarize" | "soap"
+            "improve_transcript_en"
+                | "summary_bullets_en"
+                | "soap_en"
+                | "transcript_improve"
+                | "transcript_summarize"
+                | "soap"
         ) {
             if seen_builtin_prompt_ids.contains(&p.id) {
                 false
@@ -842,9 +855,13 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     settings
         .post_process_prompts
         .sort_by_key(|prompt| match prompt.id.as_str() {
-            "transcript_improve" => 0,
-            "transcript_summarize" => 1,
-            _ => 2,
+            "improve_transcript_en" => 0,
+            "summary_bullets_en" => 1,
+            "soap_en" => 2,
+            "transcript_improve" => 3,
+            "transcript_summarize" => 4,
+            "soap" => 5,
+            _ => 100,
         });
     let prompt_order_after = settings
         .post_process_prompts
@@ -853,6 +870,18 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         .collect::<Vec<String>>();
     if prompt_order_before != prompt_order_after {
         changed = true;
+    }
+
+    if let Some(selected) = settings.post_process_selected_prompt_id.clone() {
+        if !settings
+            .post_process_prompts
+            .iter()
+            .any(|p| p.id == selected)
+        {
+            settings.post_process_selected_prompt_id =
+                settings.post_process_prompts.first().map(|p| p.id.clone());
+            changed = true;
+        }
     }
 
     changed
@@ -924,7 +953,7 @@ pub fn get_default_settings() -> AppSettings {
         post_process_api_keys: default_post_process_api_keys(),
         post_process_models: default_post_process_models(),
         post_process_prompts: default_post_process_prompts(),
-        post_process_selected_prompt_id: None,
+        post_process_selected_prompt_id: Some("improve_transcript_en".to_string()),
         post_process_ollama_num_ctx: default_post_process_ollama_num_ctx(),
         post_process_ollama_num_predict: default_post_process_ollama_num_predict(),
         post_process_local_performance: LocalLlmPerformancePreset::default(),
@@ -1074,8 +1103,10 @@ pub fn get_recording_retention_period(app: &AppHandle) -> RecordingRetentionPeri
 
 #[cfg(test)]
 mod local_private_provider_tests {
+    use super::ensure_post_process_defaults;
     use super::get_default_settings;
     use super::LocalLlmPerformancePreset;
+    use super::PostProcessProvider;
 
     #[test]
     fn default_post_process_providers_start_with_local_private() {
@@ -1094,10 +1125,98 @@ mod local_private_provider_tests {
     }
 
     #[test]
+    fn default_post_process_providers_exclude_removed_cloud_tier() {
+        let settings = get_default_settings();
+        assert!(
+            !settings
+                .post_process_providers
+                .iter()
+                .any(|p| p.id == "anamedi"),
+            "legacy cloud provider id must not ship in defaults"
+        );
+    }
+
+    #[test]
+    fn ensure_post_process_defaults_strips_legacy_anamedi_provider() {
+        let mut settings = get_default_settings();
+        settings.post_process_providers.push(PostProcessProvider {
+            id: "anamedi".to_string(),
+            label: "Legacy Cloud".to_string(),
+            base_url: "https://app.anamedi.com".to_string(),
+            allow_base_url_edit: false,
+            models_endpoint: None,
+        });
+        settings
+            .post_process_api_keys
+            .insert("anamedi".to_string(), "test-key".to_string());
+        settings
+            .post_process_models
+            .insert("anamedi".to_string(), "m".to_string());
+        settings.post_process_provider_id = "anamedi".to_string();
+
+        assert!(ensure_post_process_defaults(&mut settings));
+
+        assert!(!settings
+            .post_process_providers
+            .iter()
+            .any(|p| p.id == "anamedi"));
+        assert!(!settings.post_process_api_keys.contains_key("anamedi"));
+        assert!(!settings.post_process_models.contains_key("anamedi"));
+        assert_ne!(settings.post_process_provider_id, "anamedi");
+        let active = settings
+            .active_post_process_provider()
+            .expect("active provider after migration");
+        assert!(active.id == "local_private" || active.id == "custom");
+    }
+
+    #[test]
     fn local_llm_performance_preset_defaults_to_default_variant() {
         assert_eq!(
             LocalLlmPerformancePreset::default(),
             LocalLlmPerformancePreset::Default
         );
+    }
+
+    #[test]
+    fn default_post_process_prompts_are_six_en_then_de() {
+        let settings = get_default_settings();
+        assert_eq!(settings.post_process_prompts.len(), 6);
+        let ids: Vec<&str> = settings
+            .post_process_prompts
+            .iter()
+            .map(|p| p.id.as_str())
+            .collect();
+        assert_eq!(
+            ids,
+            vec![
+                "improve_transcript_en",
+                "summary_bullets_en",
+                "soap_en",
+                "transcript_improve",
+                "transcript_summarize",
+                "soap",
+            ]
+        );
+        assert_eq!(
+            settings.post_process_selected_prompt_id.as_deref(),
+            Some("improve_transcript_en")
+        );
+    }
+
+    #[test]
+    fn ensure_post_process_defaults_removes_legacy_specialty_prompts() {
+        let mut settings = get_default_settings();
+        settings.post_process_prompts.push(super::LLMPrompt {
+            id: "psychology".to_string(),
+            name: "Psychology".to_string(),
+            description: None,
+            prompt: "legacy".to_string(),
+        });
+        assert!(ensure_post_process_defaults(&mut settings));
+        assert!(!settings
+            .post_process_prompts
+            .iter()
+            .any(|p| p.id == "psychology"));
+        assert_eq!(settings.post_process_prompts.len(), 6);
     }
 }

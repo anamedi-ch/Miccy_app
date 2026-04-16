@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { platform } from "@tauri-apps/plugin-os";
 import {
   checkAccessibilityPermission,
@@ -10,7 +10,8 @@ import {
 import { toast } from "sonner";
 import { commands } from "@/bindings";
 import { useSettingsStore } from "@/stores/settingsStore";
-import HandyTextLogo from "../icons/HandyTextLogo";
+import { MiccyHeroLogo } from "../branding/MiccyHeroLogo";
+import { miccyTransComponents } from "@/lib/miccy-trans-components";
 import { Keyboard, Mic, Check, Loader2 } from "lucide-react";
 
 interface AccessibilityOnboardingProps {
@@ -207,7 +208,7 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
       permissions.microphone === "checking")
   ) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center">
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-text/50" />
       </div>
     );
@@ -216,7 +217,7 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
   // All permissions granted - show success briefly
   if (allGranted) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center gap-4">
+      <div className="h-screen w-screen flex flex-col items-center justify-center gap-4 bg-background">
         <div className="p-4 rounded-full bg-emerald-500/20">
           <Check className="w-12 h-12 text-emerald-400" />
         </div>
@@ -229,9 +230,9 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
 
   // Show permissions request screen
   return (
-    <div className="h-screen w-screen flex flex-col p-6 gap-6 items-center justify-center">
+    <div className="h-screen w-screen flex flex-col p-6 gap-6 items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-2">
-        <HandyTextLogo width={200} />
+        <MiccyHeroLogo width={200} />
       </div>
 
       <div className="max-w-md w-full flex flex-col items-center gap-4">
@@ -240,7 +241,10 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
             {t("onboarding.permissions.title")}
           </h2>
           <p className="text-text/70">
-            {t("onboarding.permissions.description")}
+            <Trans
+              i18nKey="onboarding.permissions.description"
+              components={miccyTransComponents}
+            />
           </p>
         </div>
 

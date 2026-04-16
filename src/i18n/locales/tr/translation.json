@@ -59,7 +59,7 @@
     },
     "permissions": {
       "title": "İzinler Gerekli",
-      "description": "Anamedi Local'nin düzgün çalışabilmesi için birkaç izne ihtiyacı var.",
+      "description": "<miccy>Miccy'nin</miccy> düzgün çalışabilmesi için birkaç izne ihtiyacı var.",
       "microphone": {
         "title": "Mikrofon Erişimi",
         "description": "Sesinizi transkripsiyon için alabilmek için gereklidir."
@@ -79,7 +79,7 @@
     }
   },
   "modelSelector": {
-    "welcome": "Anamedi Local'ye Hoş Geldiniz!",
+    "welcome": "<miccy>Miccy'ye</miccy> Hoş Geldiniz!",
     "downloadPrompt": "Transkripsiyona başlamak için aşağıdan bir model indirin.",
     "availableModels": "Mevcut Modeller",
     "downloadModels": "Modelleri İndir",
@@ -105,7 +105,7 @@
     "general": {
       "title": "Genel",
       "shortcut": {
-        "title": "Handy Kısayolları",
+        "title": "<miccy>Miccy</miccy> Kısayolları",
         "description": "Sesle yazma kaydını başlatmak için klavye kısayollarını yapılandırın",
         "loading": "Kısayollar yükleniyor...",
         "none": "Kısayol yapılandırılmadı",
@@ -182,7 +182,7 @@
       },
       "autostart": {
         "label": "Başlangıçta Çalıştır",
-        "description": "Bilgisayara giriş yaptığınızda Anamedi Local otomatik olarak başlatılır."
+        "description": "Bilgisayara giriş yaptığınızda <miccy>Miccy</miccy> otomatik olarak başlatılır."
       },
       "overlay": {
         "title": "Overlay Konumu",
@@ -320,7 +320,7 @@
       },
       "updateChecks": {
         "label": "Güncellemeleri Kontrol Et",
-        "description": "Anamedi Local için yeni sürümleri otomatik olarak kontrol eder"
+        "description": "<miccy>Miccy</miccy> için yeni sürümleri otomatik olarak kontrol eder"
       },
       "soundTheme": {
         "label": "Ses Teması",
@@ -369,17 +369,24 @@
         "appData": "Uygulama Verileri:",
         "models": "Modeller:",
         "settings": "Ayarlar:"
+      },
+      "keyboardImplementation": {
+        "optionTauri": "Tauri Global Shortcut",
+        "optionHandyKeys": "Miccy Keys",
+        "title": "Keyboard Implementation",
+        "description": "Choose the keyboard shortcut backend.",
+        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults"
       }
     },
     "about": {
       "title": "Hakkında",
       "version": {
         "title": "Sürüm",
-        "description": "Anamedi Local'nin mevcut sürümü"
+        "description": "<miccy>Miccy'nin</miccy> mevcut sürümü"
       },
       "appDataDirectory": {
         "title": "Uygulama Veri Dizini",
-        "description": "Anamedi Local'nin verilerini sakladığı konum"
+        "description": "<miccy>Miccy'nin</miccy> verilerini sakladığı konum"
       },
       "sourceCode": {
         "title": "Kaynak Kodu",
@@ -388,7 +395,7 @@
       },
       "supportDevelopment": {
         "title": "Geliştirmeyi Destekle",
-        "description": "Anamedi Local'yi geliştirmeye devam etmemize yardımcı olun",
+        "description": "<miccy>Miccy'yi</miccy> geliştirmeye devam etmemize yardımcı olun",
         "button": "Bağış Yap"
       },
       "acknowledgments": {
@@ -396,7 +403,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "OpenAI'nin Whisper otomatik konuşma tanıma modelinin yüksek performanslı çıkarımı",
-          "details": "Anamedi Local, hızlı ve yerel konuşmadan metne dönüştürme için Whisper.cpp kullanır. Georgi Gerganov ve katkıda bulunanların harika çalışmaları için teşekkür ederiz."
+          "details": "<miccy>Miccy</miccy>, hızlı ve yerel konuşmadan metne dönüştürme için Whisper.cpp kullanır. Georgi Gerganov ve katkıda bulunanların harika çalışmaları için teşekkür ederiz."
         }
       }
     }
@@ -413,7 +420,8 @@
     "downloading": "İndiriliyor... %{{progress}}",
     "installing": "Yükleniyor...",
     "preparing": "Hazırlanıyor...",
-    "checkForUpdates": "Güncellemeleri kontrol et"
+    "checkForUpdates": "Güncellemeleri kontrol et",
+    "openDownloadPage": "Siteden indir"
   },
   "common": {
     "loading": "Yükleniyor...",
@@ -439,7 +447,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Erişilebilirlik İzinleri Gerekli",
-    "permissionsDescription": "Anamedi Local, transkribe edilen metni yazabilmek için erişilebilirlik izinlerine ihtiyaç duyar.",
+    "permissionsDescription": "<miccy>Miccy</miccy>, transkribe edilen metni yazabilmek için erişilebilirlik izinlerine ihtiyaç duyar.",
     "openSettings": "Sistem Ayarlarını Aç",
     "dismiss": "Yoksay"
   },
@@ -448,9 +456,12 @@
   },
   "appLanguage": {
     "title": "Uygulama Dili",
-    "description": "Anamedi Local arayüzünün dilini değiştirin"
+    "description": "<miccy>Miccy</miccy> arayüzünün dilini değiştirin"
   },
   "overlay": {
     "transcribing": "Transkribe ediliyor..."
+  },
+  "brand": {
+    "logoAlt": "Miccy"
   }
 }

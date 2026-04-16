@@ -59,7 +59,7 @@
     },
     "permissions": {
       "title": "Permissions Required",
-      "description": "Anamedi Local needs a couple of permissions to work properly.",
+      "description": "<miccy>Miccy</miccy> needs a couple of permissions to work properly.",
       "microphone": {
         "title": "Microphone Access",
         "description": "Required to hear your voice for transcription."
@@ -76,10 +76,74 @@
         "checkFailed": "Failed to check permissions. Please try again.",
         "requestFailed": "Failed to request permission. Please try again."
       }
+    },
+    "structuring": {
+      "back": "Back",
+      "backToTierPick": "Back to model choice",
+      "continue": "Continue to Miccy",
+      "step1": {
+        "title": "How will you use Miccy?",
+        "subtitle": "You can change this anytime in Settings → Post-processing.",
+        "dictationOnly": {
+          "title": "Dictation only",
+          "description": "Transcribe speech to text. No AI restructuring after each recording."
+        },
+        "withStructuring": {
+          "title": "Dictation + structuring",
+          "description": "After transcription, optionally run a local or custom LLM to clean up or structure your text."
+        }
+      },
+      "step2": {
+        "title": "How should structuring run?",
+        "subtitle": "Pick one setup. You can fine-tune models and URLs in Settings later.",
+        "localUnsupported": "A private on-device structuring model is not available on this platform. Use your own Ollama instance instead.",
+        "local": {
+          "title": "Private model on this computer",
+          "lead": "Runs entirely on your device. Next, choose which structuring model to download."
+        },
+        "ollama": {
+          "title": "I use my own Ollama",
+          "description": "Miccy will use your OpenAI-compatible endpoint (for example Ollama at localhost). You will set the URL and model in Settings."
+        }
+      },
+      "localTierPick": {
+        "title": "Choose a structuring model",
+        "subtitle": "Larger models can give richer results but need more disk space and memory. You can switch later in Settings → Post-processing.",
+        "catalogUnavailable": "Model list could not be loaded. Check your connection and try again, or continue and pick a model in Settings → Post-processing.",
+        "downloadCta": "Download selected model",
+        "tiers": {
+          "local_fast": {
+            "badge": "Recommended",
+            "hint": "Smallest download — best balance of speed and quality on typical laptops."
+          },
+          "local_quality": {
+            "badge": "Largest / strongest",
+            "hint": "Heaviest download; pick when you want maximum quality and your machine has enough RAM/VRAM."
+          },
+          "local_apertus": {
+            "badge": "Clinical German",
+            "hint": "Middle size — strong for structured medical German and clinical-style notes."
+          }
+        }
+      },
+      "localPane": {
+        "intro": "The structuring model is downloading. You can open Miccy now; structuring will work when the download finishes.",
+        "progressTitle": "Structuring model download",
+        "percent": "{{value}}%",
+        "starting": "Starting download…",
+        "footerHint": "You can check progress anytime under Settings → Post-processing."
+      },
+      "ollamaPane": {
+        "hint": "Open Settings → Post-processing, choose “Custom Local”, enter your base URL (for example http://localhost:11434/v1), then pick a model from the list."
+      },
+      "errors": {
+        "downloadLlm": "Could not download the structuring model: {{error}}",
+        "configure": "Could not save settings: {{error}}"
+      }
     }
   },
   "modelSelector": {
-    "welcome": "Welcome to Anamedi Local!",
+    "welcome": "Welcome to <miccy>Miccy</miccy>!",
     "downloadPrompt": "Download a model below to get started with transcription.",
     "availableModels": "Available Models",
     "downloadModels": "Download Models",
@@ -105,7 +169,7 @@
     "general": {
       "title": "General",
       "shortcut": {
-        "title": "Handy Shortcuts",
+        "title": "<miccy>Miccy</miccy> Shortcuts",
         "description": "Configure keyboard shortcuts to trigger speech-to-text recording",
         "loading": "Loading shortcuts...",
         "none": "No shortcuts configured",
@@ -186,7 +250,7 @@
       },
       "autostart": {
         "label": "Launch on Startup",
-        "description": "Automatically start Anamedi Local when you log in to your computer."
+        "description": "Automatically start <miccy>Miccy</miccy> when you log in to your computer."
       },
       "overlay": {
         "title": "Overlay Position",
@@ -389,7 +453,7 @@
       },
       "updateChecks": {
         "label": "Check for Updates",
-        "description": "Automatically check for new versions of Anamedi Local"
+        "description": "Automatically check for new versions of <miccy>Miccy</miccy>"
       },
       "soundTheme": {
         "label": "Sound Theme",
@@ -437,7 +501,9 @@
       "keyboardImplementation": {
         "title": "Keyboard Implementation",
         "description": "Choose the keyboard shortcut backend.",
-        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults"
+        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults",
+        "optionTauri": "Tauri Global Shortcut",
+        "optionHandyKeys": "Miccy Keys"
       },
       "pasteDelay": {
         "title": "Paste Delay",
@@ -457,11 +523,11 @@
       },
       "version": {
         "title": "Version",
-        "description": "Current version of Anamedi Local"
+        "description": "Current version of <miccy>Miccy</miccy>"
       },
       "appDataDirectory": {
         "title": "App Data Directory",
-        "description": "Location where Anamedi Local stores its data"
+        "description": "Location where <miccy>Miccy</miccy> stores its data"
       },
       "sourceCode": {
         "title": "Source Code",
@@ -470,7 +536,7 @@
       },
       "supportDevelopment": {
         "title": "Support Development",
-        "description": "Help us continue building Anamedi Local",
+        "description": "Help us continue building <miccy>Miccy</miccy>",
         "button": "Donate"
       },
       "acknowledgments": {
@@ -478,7 +544,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "High-performance inference of OpenAI's Whisper automatic speech recognition model",
-          "details": "Anamedi Local uses Whisper.cpp for fast, local speech-to-text processing. Thanks to the amazing work by Georgi Gerganov and contributors."
+          "details": "<miccy>Miccy</miccy> uses Whisper.cpp for fast, local speech-to-text processing. Thanks to the amazing work by Georgi Gerganov and contributors."
         }
       }
     }
@@ -490,6 +556,7 @@
     "updateAvailableShort": "Update available",
     "upToDate": "Up to date",
     "downloadUpdate": "Download Update",
+    "openDownloadPage": "Download on website",
     "restart": "Restart",
     "updateCheckingDisabled": "Update Checking Disabled",
     "downloading": "Downloading... {{progress}}%",
@@ -521,7 +588,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Accessibility Permissions Required",
-    "permissionsDescription": "Anamedi Local needs accessibility permissions to type transcribed text.",
+    "permissionsDescription": "<miccy>Miccy</miccy> needs accessibility permissions to type transcribed text.",
     "openSettings": "Open System Settings",
     "dismiss": "Dismiss"
   },
@@ -530,10 +597,13 @@
   },
   "appLanguage": {
     "title": "Application Language",
-    "description": "Change the language of the Anamedi Local interface"
+    "description": "Change the language of the <miccy>Miccy</miccy> interface"
   },
   "overlay": {
     "transcribing": "Transcribing...",
     "structuring": "Structuring..."
+  },
+  "brand": {
+    "logoAlt": "Miccy"
   }
 }

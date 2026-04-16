@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { commands, type ModelInfo } from "@/bindings";
+import { useModelStore } from "@/stores/modelStore";
 import ModelCard from "./ModelCard";
-import HandyTextLogo from "../icons/HandyTextLogo";
+import { MiccyHeroLogo } from "../branding/MiccyHeroLogo";
 
 interface OnboardingProps {
-  onModelSelected: () => void;
+  onSpeechModelDownloadStarted: () => void;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
+const Onboarding: React.FC<OnboardingProps> = ({
+  onSpeechModelDownloadStarted,
+}) => {
   const { t } = useTranslation();
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [downloading, setDownloading] = useState(false);
@@ -33,25 +37,23 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     }
   };
 
-  const handleDownloadModel = async (modelId: string) => {
+  const handleDownloadModel = (modelId: string) => {
     setDownloading(true);
     setError(null);
-
-    // Immediately transition to main app - download will continue in footer
-    onModelSelected();
-
-    try {
-      const result = await commands.downloadModel(modelId);
-      if (result.status === "error") {
-        console.error("Download failed:", result.error);
-        setError(t("onboarding.errors.downloadModel", { error: result.error }));
+    onSpeechModelDownloadStarted();
+    void useModelStore
+      .getState()
+      .downloadModel(modelId)
+      .then((ok) => {
         setDownloading(false);
-      }
-    } catch (err) {
-      console.error("Download failed:", err);
-      setError(t("onboarding.errors.downloadModel", { error: String(err) }));
-      setDownloading(false);
-    }
+        if (!ok) {
+          const message = useModelStore.getState().error;
+          toast.error(
+            message ??
+              t("onboarding.errors.downloadModel", { error: "unknown" }),
+          );
+        }
+      });
   };
 
   const getRecommendedBadge = (modelId: string): boolean => {
@@ -59,9 +61,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col p-6 gap-4 inset-0">
+    <div className="h-screen w-screen flex flex-col p-6 gap-4 inset-0 bg-background">
       <div className="flex flex-col items-center gap-2 shrink-0">
-        <HandyTextLogo width={200} />
+        <MiccyHeroLogo width={200} />
         <p className="text-text/70 max-w-md font-medium mx-auto">
           {t("onboarding.subtitle")}
         </p>

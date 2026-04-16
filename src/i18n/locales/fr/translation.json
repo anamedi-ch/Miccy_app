@@ -1,5 +1,5 @@
 {
-  "_comment": "French translation for Anamedi Local. Forked from: https://github.com/cjpais/Handy",
+  "_comment": "French translation for Miccy. Forked from: https://github.com/cjpais/Handy",
   "tray": {
     "settings": "Paramètres...",
     "checkUpdates": "Rechercher des mises à jour...",
@@ -60,7 +60,7 @@
     },
     "permissions": {
       "title": "Autorisations requises",
-      "description": "Anamedi Local a besoin de quelques autorisations pour fonctionner correctement.",
+      "description": "<miccy>Miccy</miccy> a besoin de quelques autorisations pour fonctionner correctement.",
       "microphone": {
         "title": "Accès au microphone",
         "description": "Nécessaire pour entendre votre voix pour la transcription."
@@ -76,7 +76,7 @@
     }
   },
   "modelSelector": {
-    "welcome": "Bienvenue sur Anamedi Local !",
+    "welcome": "Bienvenue sur <miccy>Miccy</miccy> !",
     "downloadPrompt": "Téléchargez un modèle ci-dessous pour commencer la transcription.",
     "availableModels": "Modèles Disponibles",
     "downloadModels": "Télécharger des Modèles",
@@ -102,7 +102,7 @@
     "general": {
       "title": "Général",
       "shortcut": {
-        "title": "Raccourcis Handy",
+        "title": "Raccourcis <miccy>Miccy</miccy>",
         "description": "Configurer les raccourcis clavier pour déclencher l'enregistrement de la reconnaissance vocale",
         "loading": "Chargement des raccourcis...",
         "none": "Aucun raccourci configuré",
@@ -179,7 +179,7 @@
       },
       "autostart": {
         "label": "Lancer au démarrage",
-        "description": "Démarrer automatiquement Anamedi Local lorsque vous vous connectez à votre ordinateur."
+        "description": "Démarrer automatiquement <miccy>Miccy</miccy> lorsque vous vous connectez à votre ordinateur."
       },
       "overlay": {
         "title": "Position de la fenêtre d'enregistrement",
@@ -317,7 +317,7 @@
       },
       "updateChecks": {
         "label": "Vérifier les mises à jour",
-        "description": "Vérifier automatiquement les nouvelles versions d'Anamedi Local"
+        "description": "Vérifier automatiquement les nouvelles versions d'<miccy>Miccy</miccy>"
       },
       "soundTheme": {
         "label": "Thème sonore",
@@ -366,17 +366,24 @@
         "appData": "Données de l'application :",
         "models": "Modèles :",
         "settings": "Paramètres :"
+      },
+      "keyboardImplementation": {
+        "optionTauri": "Tauri Global Shortcut",
+        "optionHandyKeys": "Miccy Keys",
+        "title": "Keyboard Implementation",
+        "description": "Choose the keyboard shortcut backend.",
+        "bindingsReset": "Keyboard shortcuts were incompatible and reset to defaults"
       }
     },
     "about": {
       "title": "À propos",
       "version": {
         "title": "Version",
-        "description": "Version actuelle d'Anamedi Local"
+        "description": "Version actuelle d'<miccy>Miccy</miccy>"
       },
       "appDataDirectory": {
         "title": "Emplacement des données de l'application",
-        "description": "Emplacement où Anamedi Local stocke ses données"
+        "description": "Emplacement où <miccy>Miccy</miccy> stocke ses données"
       },
       "sourceCode": {
         "title": "Code source",
@@ -385,7 +392,7 @@
       },
       "supportDevelopment": {
         "title": "Soutenir le développement",
-        "description": "Aidez-nous à continuer à développer Anamedi Local",
+        "description": "Aidez-nous à continuer à développer <miccy>Miccy</miccy>",
         "button": "Faire un don"
       },
       "acknowledgments": {
@@ -393,7 +400,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "Inférence haute performance du modèle de reconnaissance vocale automatique Whisper d'OpenAI",
-          "details": "Anamedi Local utilise Whisper.cpp pour un traitement rapide et local de la parole en texte. Merci au travail incroyable de Georgi Gerganov et des contributeurs."
+          "details": "<miccy>Miccy</miccy> utilise Whisper.cpp pour un traitement rapide et local de la parole en texte. Merci au travail incroyable de Georgi Gerganov et des contributeurs."
         }
       }
     }
@@ -410,7 +417,8 @@
     "downloading": "Téléchargement... {{progress}}%",
     "installing": "Installation...",
     "preparing": "Préparation...",
-    "checkForUpdates": "Rechercher des mises à jour"
+    "checkForUpdates": "Rechercher des mises à jour",
+    "openDownloadPage": "Télécharger sur le site"
   },
   "common": {
     "loading": "Chargement...",
@@ -436,7 +444,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Autorisations d'accessibilité requises",
-    "permissionsDescription": "Anamedi Local a besoin des autorisations d'accessibilité pour taper le texte transcrit.",
+    "permissionsDescription": "<miccy>Miccy</miccy> a besoin des autorisations d'accessibilité pour taper le texte transcrit.",
     "openSettings": "Ouvrir les Préférences Système",
     "dismiss": "Ignorer"
   },
@@ -445,9 +453,12 @@
   },
   "appLanguage": {
     "title": "Langue de l'application",
-    "description": "Changer la langue de l'interface d'Anamedi Local"
+    "description": "Changer la langue de l'interface d'<miccy>Miccy</miccy>"
   },
   "overlay": {
     "transcribing": "Transcription..."
+  },
+  "brand": {
+    "logoAlt": "Miccy"
   }
 }

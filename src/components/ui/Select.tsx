@@ -55,6 +55,7 @@ const selectStyles: StylesConfig<SelectOption, false> = {
   control: (base, state) => ({
     ...base,
     minHeight: 40,
+    minWidth: 0,
     borderRadius: 8,
     borderColor: state.isFocused
       ? "var(--color-logo-primary)"
@@ -83,6 +84,10 @@ const selectStyles: StylesConfig<SelectOption, false> = {
   singleValue: (base) => ({
     ...base,
     color: "var(--color-text)",
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   }),
   dropdownIndicator: (base, state) => ({
     ...base,
@@ -175,7 +180,6 @@ export const Select: React.FC<SelectProps> = React.memo(
     );
 
     const sharedProps: Partial<ReactSelectProps<SelectOption, false>> = {
-      className,
       classNamePrefix: "app-select",
       value: selectValue,
       options,
@@ -189,17 +193,26 @@ export const Select: React.FC<SelectProps> = React.memo(
       ...(hasMenuDetails ? { formatOptionLabel } : {}),
     };
 
+    const wrapperClass = `w-full min-w-0 max-w-full ${className}`.trim();
+
     if (isCreatable) {
       return (
-        <CreatableSelect<SelectOption, false>
-          {...sharedProps}
-          onCreateOption={onCreateOption}
-          formatCreateLabel={formatCreateLabel}
-        />
+        <div className={wrapperClass}>
+          <CreatableSelect<SelectOption, false>
+            {...sharedProps}
+            className=""
+            onCreateOption={onCreateOption}
+            formatCreateLabel={formatCreateLabel}
+          />
+        </div>
       );
     }
 
-    return <SelectComponent<SelectOption, false> {...sharedProps} />;
+    return (
+      <div className={wrapperClass}>
+        <SelectComponent<SelectOption, false> {...sharedProps} className="" />
+      </div>
+    );
   },
 );
 

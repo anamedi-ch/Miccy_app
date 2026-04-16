@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { check } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { listen } from "@tauri-apps/api/event";
-import { ProgressBar } from "../shared";
 import { useSettings } from "../../hooks/useSettings";
+import { getDownloadPageUrl } from "@/lib/constants/download-page";
 
 interface UpdateCheckerProps {
   className?: string;
@@ -12,24 +12,18 @@ interface UpdateCheckerProps {
 
 const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   const { t } = useTranslation();
-  // Update checking state
   const [isChecking, setIsChecking] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [isInstalling, setIsInstalling] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
   const [showUpToDate, setShowUpToDate] = useState(false);
 
   const { settings, isLoading } = useSettings();
   const settingsLoaded = !isLoading && settings !== null;
-  const updateChecksEnabled = settings?.update_checks_enabled ?? false;
+  const updateChecksEnabled = settings?.update_checks_enabled ?? true;
 
   const upToDateTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const isManualCheckRef = useRef(false);
-  const downloadedBytesRef = useRef(0);
-  const contentLengthRef = useRef(0);
 
   useEffect(() => {
-    // Wait for settings to load before doing anything
     if (!settingsLoaded) return;
 
     if (!updateChecksEnabled) {
@@ -42,9 +36,8 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
       return;
     }
 
-    checkForUpdates();
+    void checkForUpdates();
 
-    // Listen for update check events
     const updateUnlisten = listen("check-for-updates", () => {
       handleManualUpdateCheck();
     });
@@ -57,7 +50,6 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
     };
   }, [settingsLoaded, updateChecksEnabled]);
 
-  // Update checking functions
   const checkForUpdates = async () => {
     if (!updateChecksEnabled || isChecking) return;
 
@@ -92,82 +84,35 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   const handleManualUpdateCheck = () => {
     if (!updateChecksEnabled) return;
     isManualCheckRef.current = true;
-    checkForUpdates();
+    void checkForUpdates();
   };
 
-  const installUpdate = async () => {
-    if (!updateChecksEnabled) return;
+  const openDownloadPage = async () => {
     try {
-      setIsInstalling(true);
-      setDownloadProgress(0);
-      downloadedBytesRef.current = 0;
-      contentLengthRef.current = 0;
-      const update = await check();
-
-      if (!update) {
-        console.log("No update available during install attempt");
-        return;
-      }
-
-      await update.downloadAndInstall((event) => {
-        switch (event.event) {
-          case "Started":
-            downloadedBytesRef.current = 0;
-            contentLengthRef.current = event.data.contentLength ?? 0;
-            break;
-          case "Progress":
-            downloadedBytesRef.current += event.data.chunkLength;
-            const progress =
-              contentLengthRef.current > 0
-                ? Math.round(
-                    (downloadedBytesRef.current / contentLengthRef.current) *
-                      100,
-                  )
-                : 0;
-            setDownloadProgress(Math.min(progress, 100));
-            break;
-        }
-      });
-      await relaunch();
+      await openUrl(getDownloadPageUrl());
     } catch (error) {
-      console.error("Failed to install update:", error);
-    } finally {
-      setIsInstalling(false);
-      setDownloadProgress(0);
-      downloadedBytesRef.current = 0;
-      contentLengthRef.current = 0;
+      console.error("Failed to open download page:", error);
     }
   };
 
-  // Update status functions
   const getUpdateStatusText = () => {
     if (!updateChecksEnabled) {
       return t("footer.updateCheckingDisabled");
     }
-    if (isInstalling) {
-      return downloadProgress > 0 && downloadProgress < 100
-        ? t("footer.downloading", {
-            progress: downloadProgress.toString().padStart(3),
-          })
-        : downloadProgress === 100
-          ? t("footer.installing")
-          : t("footer.preparing");
-    }
     if (isChecking) return t("footer.checkingUpdates");
     if (showUpToDate) return t("footer.upToDate");
-    if (updateAvailable) return t("footer.updateAvailableShort");
+    if (updateAvailable) return t("footer.openDownloadPage");
     return t("footer.checkForUpdates");
   };
 
   const getUpdateStatusAction = () => {
     if (!updateChecksEnabled) return undefined;
-    if (updateAvailable && !isInstalling) return installUpdate;
-    if (!isChecking && !isInstalling && !updateAvailable)
-      return handleManualUpdateCheck;
+    if (updateAvailable && !isChecking) return openDownloadPage;
+    if (!isChecking && !updateAvailable) return handleManualUpdateCheck;
     return undefined;
   };
 
-  const isUpdateDisabled = !updateChecksEnabled || isChecking || isInstalling;
+  const isUpdateDisabled = !updateChecksEnabled || isChecking;
   const isUpdateClickable =
     !isUpdateDisabled && (updateAvailable || (!isChecking && !showUpToDate));
 
@@ -175,6 +120,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
     <div className={`flex items-center gap-3 ${className}`}>
       {isUpdateClickable ? (
         <button
+          type="button"
           onClick={getUpdateStatusAction()}
           disabled={isUpdateDisabled}
           className={`transition-colors disabled:opacity-50 tabular-nums ${
@@ -186,21 +132,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
           {getUpdateStatusText()}
         </button>
       ) : (
-        <span className="text-text/60 tabular-nums">
-          {getUpdateStatusText()}
-        </span>
-      )}
-
-      {isInstalling && downloadProgress > 0 && downloadProgress < 100 && (
-        <ProgressBar
-          progress={[
-            {
-              id: "update",
-              percentage: downloadProgress,
-            },
-          ]}
-          size="large"
-        />
+        <span className="text-text/60 tabular-nums">{getUpdateStatusText()}</span>
       )}
     </div>
   );

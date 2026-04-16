@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { formatKeyCombination } from "../../lib/utils/keyboard";
 import { ResetButton } from "../ui/ResetButton";
@@ -8,6 +8,7 @@ import { useSettings } from "../../hooks/useSettings";
 import { useOsType } from "../../hooks/useOsType";
 import { commands } from "@/bindings";
 import { toast } from "sonner";
+import { miccyTransComponents } from "@/lib/miccy-trans-components";
 
 interface HandyKeysShortcutInputProps {
   descriptionMode?: "inline" | "tooltip";
@@ -30,6 +31,12 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
   disabled = false,
 }) => {
   const { t } = useTranslation();
+  const shortcutSectionTitle = (
+    <Trans
+      i18nKey="settings.general.shortcut.title"
+      components={miccyTransComponents}
+    />
+  );
   const { getSetting, updateBinding, resetBinding, isUpdating, isLoading } =
     useSettings();
   const [isRecording, setIsRecording] = useState(false);
@@ -211,7 +218,7 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
   if (isLoading) {
     return (
       <SettingContainer
-        title={t("settings.general.shortcut.title")}
+        title={shortcutSectionTitle}
         description={t("settings.general.shortcut.description")}
         descriptionMode={descriptionMode}
         grouped={grouped}
@@ -227,7 +234,7 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
   if (Object.keys(bindings).length === 0) {
     return (
       <SettingContainer
-        title={t("settings.general.shortcut.title")}
+        title={shortcutSectionTitle}
         description={t("settings.general.shortcut.description")}
         descriptionMode={descriptionMode}
         grouped={grouped}
@@ -243,7 +250,7 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
   if (!binding) {
     return (
       <SettingContainer
-        title={t("settings.general.shortcut.title")}
+        title={shortcutSectionTitle}
         description={t("settings.general.shortcut.notFound")}
         descriptionMode={descriptionMode}
         grouped={grouped}

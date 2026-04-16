@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import { SettingsGroup } from "../../ui/SettingsGroup";
@@ -8,6 +8,7 @@ import { Button } from "../../ui/Button";
 import { AppDataDirectory } from "../AppDataDirectory";
 import { AppLanguageSelector } from "../AppLanguageSelector";
 import { LogDirectory } from "../debug";
+import { miccyTransComponents } from "@/lib/miccy-trans-components";
 
 export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -34,7 +35,12 @@ export const AboutSettings: React.FC = () => {
         <AppLanguageSelector descriptionMode="tooltip" grouped={true} />
         <SettingContainer
           title={t("settings.about.version.title")}
-          description={t("settings.about.version.description")}
+          description={
+            <Trans
+              i18nKey="settings.about.version.description"
+              components={miccyTransComponents}
+            />
+          }
           grouped={true}
         >
           {/* eslint-disable-next-line i18next/no-literal-string */}

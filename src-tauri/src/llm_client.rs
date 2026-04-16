@@ -84,13 +84,13 @@ fn build_headers(provider: &PostProcessProvider, api_key: &str) -> Result<Header
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(
         REFERER,
-        HeaderValue::from_static("https://github.com/anamedi-ch/anamedi_lokal"),
+        HeaderValue::from_static("https://miccy.app"),
     );
     headers.insert(
         USER_AGENT,
-        HeaderValue::from_static("Anamedi/1.0 (+https://github.com/anamedi-ch/anamedi_lokal)"),
+        HeaderValue::from_static("Miccy/1.0 (+https://miccy.app)"),
     );
-    headers.insert("X-Title", HeaderValue::from_static("Anamedi Local"));
+    headers.insert("X-Title", HeaderValue::from_static("Miccy"));
 
     // Provider-specific auth headers
     if !api_key.is_empty() {
@@ -351,7 +351,7 @@ mod tests {
 
     #[test]
     fn omits_options_for_non_ollama_requests() {
-        let provider = build_provider("anamedi", "https://app.anamedi.com");
+        let provider = build_provider("remote_api", "https://api.example.com/v1");
         let request = build_chat_completion_request(
             "model",
             "hello".to_string(),
@@ -368,7 +368,7 @@ mod tests {
 
     #[test]
     fn includes_temperature_and_max_tokens_when_extras_set() {
-        let provider = build_provider("anamedi", "https://example.com/v1");
+        let provider = build_provider("remote_api", "https://example.com/v1");
         let request = build_chat_completion_request(
             "m",
             "x".to_string(),

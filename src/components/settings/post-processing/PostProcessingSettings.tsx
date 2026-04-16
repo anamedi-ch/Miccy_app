@@ -96,7 +96,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
                     "settings.postProcessing.api.baseUrl.placeholder",
                   )}
                   disabled={state.isBaseUrlUpdating}
-                  className="min-w-[380px]"
+                  className="min-w-0 w-full max-w-full"
                 />
               </div>
             </SettingContainer>
@@ -117,7 +117,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
                   "settings.postProcessing.api.apiKey.placeholder",
                 )}
                 disabled={state.isApiKeyUpdating}
-                className="min-w-[320px]"
+                className="min-w-0 w-full max-w-full"
               />
             </div>
           </SettingContainer>
@@ -133,7 +133,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
             layout="stacked"
             grouped={true}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <ModelSelect
                 value={state.model}
                 options={state.modelOptions}
@@ -149,7 +149,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
                 onSelect={state.handleModelSelect}
                 onCreate={state.handleModelCreate}
                 onBlur={() => {}}
-                className="flex-1 min-w-[380px]"
+                className="min-w-0 flex-1 max-w-full basis-[min(100%,22rem)]"
               />
               <ResetButton
                 onClick={state.handleRefreshModels}
@@ -353,32 +353,35 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
       layout="stacked"
       grouped={true}
     >
-      <div className="space-y-3">
-        <div className="flex gap-2">
-          <Dropdown
-            selectedValue={selectedPromptId || null}
-            options={prompts.map((p) => ({
-              value: p.id,
-              label: p.description
-                ? `${p.name} — ${p.description}`
-                : p.name,
-            }))}
-            onSelect={(value) => handlePromptSelect(value)}
-            placeholder={
-              prompts.length === 0
-                ? t("settings.postProcessing.prompts.noPrompts")
-                : t("settings.postProcessing.prompts.selectPrompt")
-            }
-            disabled={
-              isUpdating("post_process_selected_prompt_id") || isCreating
-            }
-            className="flex-1"
-          />
+      <div className="space-y-3 min-w-0 max-w-full">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+          <div className="min-w-0 flex-1 w-full">
+            <Dropdown
+              selectedValue={selectedPromptId || null}
+              options={prompts.map((p) => ({
+                value: p.id,
+                label: p.description
+                  ? `${p.name} — ${p.description}`
+                  : p.name,
+              }))}
+              onSelect={(value) => handlePromptSelect(value)}
+              placeholder={
+                prompts.length === 0
+                  ? t("settings.postProcessing.prompts.noPrompts")
+                  : t("settings.postProcessing.prompts.selectPrompt")
+              }
+              disabled={
+                isUpdating("post_process_selected_prompt_id") || isCreating
+              }
+              className="w-full"
+            />
+          </div>
           <Button
             onClick={handleStartCreate}
             variant="primary"
             size="md"
             disabled={isCreating}
+            className="shrink-0 w-full sm:w-auto"
           >
             {t("settings.postProcessing.prompts.createNew")}
           </Button>
@@ -525,7 +528,7 @@ export const PostProcessingSettings: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="max-w-3xl w-full mx-auto space-y-6">
+    <div className="max-w-3xl w-full min-w-0 mx-auto space-y-6 px-1 sm:px-0">
       <SettingsGroup title={t("settings.postProcessing.api.title")}>
         <PostProcessingSettingsApi />
       </SettingsGroup>

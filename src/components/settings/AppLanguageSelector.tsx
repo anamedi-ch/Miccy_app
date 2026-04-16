@@ -1,9 +1,10 @@
 import React from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { Dropdown } from "../ui/Dropdown";
 import { SettingContainer } from "../ui/SettingContainer";
 import { SUPPORTED_LANGUAGES, type SupportedLanguageCode } from "../../i18n";
 import { useSettings } from "@/hooks/useSettings";
+import { miccyTransComponents } from "@/lib/miccy-trans-components";
 
 interface AppLanguageSelectorProps {
   descriptionMode?: "inline" | "tooltip";
@@ -31,7 +32,12 @@ export const AppLanguageSelector: React.FC<AppLanguageSelectorProps> =
     return (
       <SettingContainer
         title={t("appLanguage.title")}
-        description={t("appLanguage.description")}
+        description={
+          <Trans
+            i18nKey="appLanguage.description"
+            components={miccyTransComponents}
+          />
+        }
         descriptionMode={descriptionMode}
         grouped={grouped}
       >

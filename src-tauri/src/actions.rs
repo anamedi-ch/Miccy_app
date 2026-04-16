@@ -14,14 +14,10 @@ use crate::utils::{
     self, show_recording_overlay, show_structuring_overlay, show_transcribing_overlay,
 };
 use crate::ManagedToggleState;
-use crate::{anamedi_client, audio_toolkit::save_wav_file};
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
 use log::{debug, error};
 use once_cell::sync::Lazy;
-use std::borrow::Cow;
 use std::collections::HashMap;
-use std::env;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 use tauri::AppHandle;
@@ -60,7 +56,6 @@ async fn maybe_post_process_transcription(
     app: &AppHandle,
     settings: &AppSettings,
     transcription: &str,
-    audio_samples: &[f32],
 ) -> Option<String> {
     if !settings.post_process_enabled {
         return None;
@@ -96,13 +91,6 @@ async fn maybe_post_process_transcription(
             return None;
         }
     };
-
-    // When using Anamedi as provider, we call the dedicated audio endpoint instead of
-    // the text-based OpenAI-compatible chat completion API.
-    if provider.id == "anamedi" {
-        return maybe_post_process_with_anamedi(settings, transcription, audio_samples, &prompt)
-            .await;
-    }
 
     if prompt.trim().is_empty() {
         debug!("Post-processing skipped because the selected prompt is empty");
@@ -282,143 +270,6 @@ async fn maybe_post_process_transcription(
     }
 }
 
-/// Try to map the app's selected_language to an ISO 639-3 code for Anamedi.
-fn map_language_to_iso_639_3(selected_language: &str) -> Option<Cow<'static, str>> {
-    let normalized = selected_language.to_lowercase();
-    match normalized.as_str() {
-        "auto" | "" => None,
-        "en" | "en-us" | "en-gb" => Some(Cow::Borrowed("eng")),
-        "de" | "de-de" => Some(Cow::Borrowed("deu")),
-        "fr" | "fr-fr" => Some(Cow::Borrowed("fra")),
-        "it" | "it-it" => Some(Cow::Borrowed("ita")),
-        "es" | "es-es" => Some(Cow::Borrowed("spa")),
-        // Fallback: let Anamedi auto-detect
-        _ => None,
-    }
-}
-
-/// Perform post-processing using Anamedi's /api/transcribe-custom-structure endpoint.
-///
-/// This keeps dictation/transcription local while optionally offloading the
-/// summarization/structuring step to Anamedi when explicitly configured.
-async fn maybe_post_process_with_anamedi(
-    settings: &AppSettings,
-    _transcription: &str,
-    audio_samples: &[f32],
-    prompt_text: &str,
-) -> Option<String> {
-    // API key is stored in the generic post_process_api_keys map under the Anamedi provider id.
-    let api_key = match settings.post_process_api_keys.get("anamedi") {
-        Some(key) if !key.trim().is_empty() => key.trim().to_string(),
-        _ => {
-            debug!("Anamedi post-processing skipped because API key is missing");
-            return None;
-        }
-    };
-
-    // Derive schema / instructions from the selected prompt:
-    // - If the prompt is valid JSON, treat it as the schema and omit instructions.
-    // - Otherwise, use a built-in SOAP-style schema and pass the prompt as instructions.
-    let (schema, instructions): (String, Option<String>) =
-        if serde_json::from_str::<serde_json::Value>(prompt_text).is_ok() {
-            (prompt_text.to_string(), None)
-        } else {
-            let default_schema = r#"{
-  "type": "object",
-  "properties": {
-    "summary": {
-      "type": "string",
-      "description": "Structured medical summary of the encounter in free text"
-    },
-    "keywords": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Important clinical keywords and concepts"
-    },
-    "followUp": {
-      "type": "string",
-      "description": "Recommended follow-up actions or next steps"
-    }
-  },
-  "required": ["summary"]
-}"#;
-            (default_schema.to_string(), Some(prompt_text.to_string()))
-        };
-
-    // Map language if possible, otherwise let Anamedi auto-detect.
-    let language_code = map_language_to_iso_639_3(&settings.selected_language);
-
-    // Write a temporary WAV file for Anamedi from the in-memory samples.
-    let timestamp = chrono::Utc::now().timestamp_millis();
-    let temp_dir = env::temp_dir();
-    let temp_path: PathBuf = temp_dir.join(format!("anamedi-{}.wav", timestamp));
-
-    if let Err(e) = save_wav_file(&temp_path, audio_samples).await {
-        error!(
-            "Failed to write temporary WAV file for Anamedi at {:?}: {}",
-            temp_path, e
-        );
-        return None;
-    }
-
-    let result = anamedi_client::transcribe_custom_structure_with_file(
-        &api_key,
-        &temp_path,
-        &schema,
-        instructions.as_deref(),
-        None,
-        language_code.as_deref(),
-    )
-    .await;
-
-    // Best-effort cleanup of the temporary audio file.
-    if let Err(e) = std::fs::remove_file(&temp_path) {
-        debug!(
-            "Failed to remove temporary Anamedi WAV file {:?}: {}",
-            temp_path, e
-        );
-    }
-
-    match result {
-        Ok(response) => {
-            debug!(
-                "Anamedi post-processing succeeded. Transcript length: {}, structuredData keys: {}",
-                response.transcript.len(),
-                match response.structured_data.as_object() {
-                    Some(obj) => obj.keys().count(),
-                    None => 0,
-                }
-            );
-
-            // Prefer a top-level "summary" field if present, otherwise fall back to pretty JSON.
-            if let Some(summary) = response
-                .structured_data
-                .get("summary")
-                .and_then(|v| v.as_str())
-            {
-                Some(summary.to_string())
-            } else {
-                match serde_json::to_string_pretty(&response.structured_data) {
-                    Ok(text) => Some(text),
-                    Err(e) => {
-                        error!("Failed to serialize Anamedi structuredData to JSON: {}", e);
-                        None
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            error!(
-                "Anamedi post-processing failed: {}. Falling back to local transcription only.",
-                e
-            );
-            None
-        }
-    }
-}
-
 async fn maybe_convert_chinese_variant(
     settings: &AppSettings,
     transcription: &str,
@@ -476,15 +327,13 @@ fn should_show_structuring_overlay(settings: &AppSettings) -> bool {
         return false;
     };
 
-    if provider.id != "anamedi" {
-        let model = settings
-            .post_process_models
-            .get(&provider.id)
-            .map(String::as_str)
-            .unwrap_or("");
-        if model.trim().is_empty() {
-            return false;
-        }
+    let model = settings
+        .post_process_models
+        .get(&provider.id)
+        .map(String::as_str)
+        .unwrap_or("");
+    if model.trim().is_empty() {
+        return false;
     }
 
     let Some(prompt_id) = &settings.post_process_selected_prompt_id else {
@@ -503,7 +352,6 @@ pub async fn process_transcription_result(
     app: &AppHandle,
     settings: &AppSettings,
     transcription: &str,
-    audio_samples: &[f32],
 ) -> ProcessedTranscription {
     let mut final_text = transcription.to_string();
     let mut post_processed_text: Option<String> = None;
@@ -521,8 +369,7 @@ pub async fn process_transcription_result(
         final_text = converted_text;
     }
 
-    if let Some(processed_text) =
-        maybe_post_process_transcription(app, settings, &final_text, audio_samples).await
+    if let Some(processed_text) = maybe_post_process_transcription(app, settings, &final_text).await
     {
         if processed_text.trim().is_empty() {
             debug!("Post-processing returned empty output; keeping transcription result");
@@ -667,7 +514,6 @@ impl ShortcutAction for TranscribeAction {
                     }
                 };
                 let transcription_time = Instant::now();
-                let post_process_samples = recording.samples.clone();
                 match tm.transcribe(&recording) {
                     Ok(transcription) => {
                         debug!(
@@ -680,13 +526,8 @@ impl ShortcutAction for TranscribeAction {
                             if should_show_structuring_overlay(&settings) {
                                 show_structuring_overlay(&ah);
                             }
-                            let processed = process_transcription_result(
-                                &ah,
-                                &settings,
-                                &transcription,
-                                &post_process_samples,
-                            )
-                            .await;
+                            let processed =
+                                process_transcription_result(&ah, &settings, &transcription).await;
 
                             if let Some(entry_id) = history_entry_id {
                                 if let Err(err) = hm
@@ -807,6 +648,52 @@ impl ShortcutAction for TestAction {
             shortcut_str,
             app.package_info().name
         );
+    }
+}
+
+#[cfg(test)]
+mod structuring_overlay_tests {
+    use super::should_show_structuring_overlay;
+    use crate::settings::get_default_settings;
+
+    #[test]
+    fn structuring_overlay_off_when_post_process_disabled_for_non_cjk() {
+        let mut settings = get_default_settings();
+        settings.selected_language = "en".to_string();
+        settings.post_process_enabled = false;
+        assert!(!should_show_structuring_overlay(&settings));
+    }
+
+    #[test]
+    fn structuring_overlay_on_for_simplified_chinese_without_post_process() {
+        let mut settings = get_default_settings();
+        settings.post_process_enabled = false;
+        settings.selected_language = "zh-Hans".to_string();
+        assert!(should_show_structuring_overlay(&settings));
+    }
+
+    #[test]
+    fn structuring_overlay_off_when_model_missing_for_post_process() {
+        let mut settings = get_default_settings();
+        settings.selected_language = "en".to_string();
+        settings.post_process_enabled = true;
+        settings.post_process_provider_id = "local_private".to_string();
+        settings.post_process_selected_prompt_id = Some("transcript_improve".to_string());
+        settings.post_process_models.remove("local_private");
+        assert!(!should_show_structuring_overlay(&settings));
+    }
+
+    #[test]
+    fn structuring_overlay_on_when_local_model_and_prompt_configured() {
+        let mut settings = get_default_settings();
+        settings.selected_language = "en".to_string();
+        settings.post_process_enabled = true;
+        settings.post_process_provider_id = "local_private".to_string();
+        settings
+            .post_process_models
+            .insert("local_private".to_string(), "local_fast".to_string());
+        settings.post_process_selected_prompt_id = Some("transcript_improve".to_string());
+        assert!(should_show_structuring_overlay(&settings));
     }
 }
 

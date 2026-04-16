@@ -53,7 +53,7 @@ export const PostProcessingTemplatePicker: React.FC<
             : t("settings.postProcessing.prompts.noPrompts")
         }
         disabled={isUpdating("post_process_selected_prompt_id")}
-        className="flex-1"
+        className="w-full min-w-0"
       />
     </SettingContainer>
   );
