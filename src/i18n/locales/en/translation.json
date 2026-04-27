@@ -529,16 +529,6 @@
         "title": "App Data Directory",
         "description": "Location where <miccy>Miccy</miccy> stores its data"
       },
-      "sourceCode": {
-        "title": "Source Code",
-        "description": "View source code and contribute",
-        "button": "View on GitHub"
-      },
-      "supportDevelopment": {
-        "title": "Support Development",
-        "description": "Help us continue building <miccy>Miccy</miccy>",
-        "button": "Donate"
-      },
       "acknowledgments": {
         "title": "Acknowledgments",
         "whisper": {

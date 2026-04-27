@@ -24,13 +24,13 @@ jobs:
         run: |
           # Remove 'v' prefix from tag if present
           VERSION="${RELEASE_VERSION#v}"
-          APPIMAGE_URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/Handy_${VERSION}_amd64.AppImage"
+          APPIMAGE_URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/Miccy_${VERSION}_amd64.AppImage"
 
           echo "Computing hash for: $APPIMAGE_URL"
 
           # Retry logic in case AppImage isn't immediately available
           for i in {1..30}; do
-            HASH=$(nix-prefetch-url --name "Handy_${VERSION}_amd64.AppImage" "$APPIMAGE_URL" 2>&1 | grep "^sha256-" || true)
+            HASH=$(nix-prefetch-url --name "Miccy_${VERSION}_amd64.AppImage" "$APPIMAGE_URL" 2>&1 | grep "^sha256-" || true)
             if [ -n "$HASH" ]; then
               echo "hash=$HASH" >> "$GITHUB_OUTPUT"
               echo "Successfully computed hash: $HASH"
