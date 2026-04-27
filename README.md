@@ -49,16 +49,6 @@ Coverage falls into three layers (see `src/i18n/languages.ts`, `src/lib/constant
 | **Speech recognition** | **Auto** language detection, or choose from **50+** Whisper-oriented language codes (including German, French, Italian, English, Swiss national languages, and many others). Behaviour can differ slightly by transcription engine (e.g. Parakeet auto-detect). Optional **translate to English** for Whisper where supported. |
 | **Note templates / local LLM** | Prompts are **multilingual in principle**; built-in clinical examples skew toward **German** and can be edited per deployment. |
 
-## Code signing policy
-
-Free code signing provided by SignPath.io, certificate by SignPath Foundation.
-
-- **Authors:** [jempf](https://github.com/jempf)
-- **Reviewers:** [jempf](https://github.com/jempf)
-- **Approvers:** [jempf](https://github.com/jempf)
-
-**Privacy policy:** Speech recognition and optional post-processing are designed to run on your machine; model downloads and app updates use the network as needed.
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
